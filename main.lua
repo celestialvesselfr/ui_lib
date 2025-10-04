@@ -1901,17 +1901,17 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 				end
 				
 				-- animate dropdown closing by shrinking the wrapper
-				local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-				CreateTween(dropdownWrapper, tweenInfo, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}):Play()
+				CreateTween(dropdownWrapper, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}, 0.15):Play()
 				task.wait(0.15)
 				dropdownWrapper:Destroy()
 				dropdownOpen = false
-				CreateTween(arrow, tweenInfo, {Rotation = 0}):Play()
-			end
+				CreateTween(arrow, {Rotation = 0}, 0.2):Play()
 		end
+	end
 	end)
 	
 	-- return dropdown object with refresh method
+{{ ... }}
 	local dropdownObject = {
 		Container = container,
 		Options = options,
