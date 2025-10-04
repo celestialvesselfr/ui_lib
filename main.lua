@@ -2222,27 +2222,31 @@ function UILibrary:UpdateTheme(themeConfig)
 						elseif child.Name == "InputBox" then
 							CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
 						
-						-- update keybindbutton
-						elseif child.Name == "KeybindButton" then
-							CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
-						
-						-- update dropdownbutton
-						elseif child.Name == "DropdownButton" then
-							CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
-						
-						-- update slider fill
-						elseif child.Name == "Fill" and child.Parent.Name == "Track" then
+					-- update keybindbutton
+					elseif child.Name == "KeybindButton" then
+						CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
+					
+					-- update dropdownbutton
+					elseif child.Name == "DropdownButton" then
+						CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
+					
+					-- update slider track
+					elseif child.Name == "Track" then
+						CreateTween(child, {BackgroundColor3 = CONFIG.BorderColor}, 0.3):Play()
+					
+					-- update slider fill
+					elseif child.Name == "Fill" and child.Parent.Name == "Track" then
+						CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
+					
+					-- update toggle switch colors
+					elseif child.Name == "Switch" then
+						-- check if toggle is enabled by checking knob position scale
+						local knob = child:FindFirstChild("Knob")
+						if knob and knob.Position.X.Scale > 0.5 then
 							CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
-						
-						-- update toggle switch colors
-						elseif child.Name == "Switch" then
-							-- check if toggle is enabled by checking knob position scale
-							local knob = child:FindFirstChild("Knob")
-							if knob and knob.Position.X.Scale > 0.5 then
-								CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
-							else
-								CreateTween(child, {BackgroundColor3 = CONFIG.BorderColor}, 0.3):Play()
-							end
+						else
+							CreateTween(child, {BackgroundColor3 = CONFIG.BorderColor}, 0.3):Play()
+						end
 						
 						-- update color picker popup "done" button (textbutton)
 						elseif child:IsA("TextButton") and child.Text == "Done" then
