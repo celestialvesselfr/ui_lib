@@ -1680,6 +1680,8 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 	arrow.TextXAlignment = Enum.TextXAlignment.Center
 	local currentSelection = default
 	local dropdownOpen = false
+	local searchQuery = ""
+	local searchConnection = nil
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, 0, 1, 0)
 	button.BackgroundTransparency = 1
@@ -1689,26 +1691,59 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 	button.MouseButton1Click:Connect(function()
 		if not dropdownOpen then
 			dropdownOpen = true
+			searchQuery = ""
 			CreateTween(arrow, {Rotation = 180}, 0.2):Play()
 
-			-- create dropdown list directly below the dropdown button
-			local listContainer = CreateRoundedFrame(container, "DropdownList")
+			-- create search box container
+			local searchContainer = CreateRoundedFrame(container, "SearchContainer")
+			searchContainer.Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 32)
+			searchContainer.Position = UDim2.new(0, CONFIG.Padding, 0, 68)
+			searchContainer.BackgroundColor3 = CONFIG.SurfaceColor
+			searchContainer.ZIndex = 10000
+			
+			-- search textbox
+			local searchBox = Instance.new("TextBox")
+			searchBox.Name = "SearchBox"
+			searchBox.Size = UDim2.new(1, -16, 1, 0)
+			searchBox.Position = UDim2.new(0, 8, 0, 0)
+			searchBox.BackgroundTransparency = 1
+			searchBox.Text = ""
+			searchBox.PlaceholderText = "Type to search..."
+			searchBox.Font = Enum.Font.Gotham
+			searchBox.TextSize = 13
+			searchBox.TextColor3 = CONFIG.TextColor
+			searchBox.PlaceholderColor3 = CONFIG.SecondaryTextColor
+			searchBox.TextXAlignment = Enum.TextXAlignment.Left
+			searchBox.ClearTextOnFocus = false
+			searchBox.ZIndex = 10001
+			searchBox.Parent = searchContainer
+
+			-- create dropdown list directly below the search box as a ScrollingFrame
+			local listContainer = Instance.new("ScrollingFrame")
+			listContainer.Name = "DropdownList"
 			listContainer.Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)
-			listContainer.Position = UDim2.new(0, CONFIG.Padding, 0, 68)
+			listContainer.Position = UDim2.new(0, CONFIG.Padding, 0, 104) -- 68 + 32 + 4 spacing
 			listContainer.BackgroundColor3 = CONFIG.SurfaceColor
+			listContainer.BorderSizePixel = 0
 			listContainer.ZIndex = 10000
-			listContainer.ClipsDescendants = false
+			listContainer.ClipsDescendants = true
+			listContainer.ScrollBarThickness = 4
+			listContainer.ScrollBarImageColor3 = CONFIG.AccentColor
+			listContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+			listContainer.Parent = container
+			
+			-- add rounded corners to scrolling frame
+			local listCorner = Instance.new("UICorner")
+			listCorner.CornerRadius = UDim.new(0, CONFIG.CornerRadius)
+			listCorner.Parent = listContainer
 			
 			-- raise zindex of dropdown container and all its ancestors
 			container.ZIndex = 10000
 			for _, child in ipairs(container:GetDescendants()) do
-				if child:IsA("GuiObject") and child ~= listContainer then
+				if child:IsA("GuiObject") and child ~= listContainer and child ~= searchContainer then
 					child.ZIndex = 10000
 				end
 			end
-			
-			local expandedHeight = #options * 32
-			CreateTween(listContainer, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, expandedHeight)}, 0.15):Play()
 			
 			-- set zindex for all descendants of listcontainer
 			local function setZIndexRecursive(instance, zindex)
@@ -1719,74 +1754,134 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 				end
 			end
 			setZIndexRecursive(listContainer, 10001)
+			setZIndexRecursive(searchContainer, 10001)
 
 			local listLayout = Instance.new("UIListLayout")
 			listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			listLayout.Parent = listContainer
+			
+			-- auto-update canvas size based on content
+			listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				listContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+			end)
 
 			local optionButtons = {}
-			for i, option in ipairs(options) do
-				local optionButton = Instance.new("TextButton")
-				local optionLabel = CreateTextLabel(optionButton, option, 13)
-				local optionCorner = Instance.new("UICorner")
-				optionButton.Size = UDim2.new(1, 0, 0, 32)
-				optionButton.BackgroundColor3 = option == currentSelection and CONFIG.AccentColor or CONFIG.SurfaceColor
-				optionButton.BackgroundTransparency = option == currentSelection and 0.7 or 1
-				optionButton.BorderSizePixel = 0
-				optionButton.Text = ""
-				optionButton.AutoButtonColor = false
-				optionButton.ZIndex = 10001
-				optionButton.LayoutOrder = i
-				optionButton.Parent = listContainer
-				optionLabel.Size = UDim2.new(1, -16, 1, 0)
-				optionLabel.Position = UDim2.new(0, 8, 0, 0)
-				optionLabel.ZIndex = 10002
-				optionCorner.CornerRadius = UDim.new(0, CONFIG.CornerRadius)
-				optionCorner.Parent = optionButton
+			
+			-- function to filter and display options
+			local function updateOptions(query)
+				-- clear existing options
+				for _, btn in ipairs(optionButtons) do
+					btn:Destroy()
+				end
+				optionButtons = {}
 				
-				table.insert(optionButtons, optionButton)
+				-- filter options based on query
+				local filteredOptions = {}
+				for _, option in ipairs(options) do
+					if query == "" or string.find(string.lower(option), string.lower(query), 1, true) then
+						table.insert(filteredOptions, option)
+					end
+				end
+				
+				-- create buttons for filtered options
+				local expandedHeight = math.min(#filteredOptions * 32, 200) -- cap at 200px
+				CreateTween(listContainer, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, expandedHeight)}, 0.15):Play()
+				
+				for i, option in ipairs(filteredOptions) do
+					local optionButton = Instance.new("TextButton")
+					local optionLabel = CreateTextLabel(optionButton, option, 13)
+					local optionCorner = Instance.new("UICorner")
+					optionButton.Size = UDim2.new(1, -8, 0, 32) -- account for scrollbar
+					optionButton.BackgroundColor3 = option == currentSelection and CONFIG.AccentColor or CONFIG.SurfaceColor
+					optionButton.BackgroundTransparency = option == currentSelection and 0.7 or 1
+					optionButton.BorderSizePixel = 0
+					optionButton.Text = ""
+					optionButton.AutoButtonColor = false
+					optionButton.ZIndex = 10001
+					optionButton.LayoutOrder = i
+					optionButton.Parent = listContainer
+					optionLabel.Size = UDim2.new(1, -16, 1, 0)
+					optionLabel.Position = UDim2.new(0, 8, 0, 0)
+					optionLabel.ZIndex = 10002
+					optionCorner.CornerRadius = UDim.new(0, CONFIG.CornerRadius)
+					optionCorner.Parent = optionButton
+					
+					table.insert(optionButtons, optionButton)
 
-				optionButton.MouseButton1Click:Connect(function()
-					currentSelection = option
-					selectedLabel.Text = option
-					callback(option)
-					
-					-- destroy all ui elements before closing animation
-					for _, child in ipairs(listContainer:GetChildren()) do
-						if child:IsA("TextButton") or child:IsA("UIListLayout") then
-							child:Destroy()
+					optionButton.MouseButton1Click:Connect(function()
+						currentSelection = option
+						selectedLabel.Text = option
+						callback(option)
+						
+						-- disconnect search input listener
+						if searchConnection then
+							searchConnection:Disconnect()
+							searchConnection = nil
 						end
-					end
-					
-					-- reset container zindex
-					container.ZIndex = 1
-					for _, child in ipairs(container:GetDescendants()) do
-						if child:IsA("GuiObject") then
-							child.ZIndex = 1
+						
+						-- destroy all ui elements before closing animation
+						searchContainer:Destroy()
+						for _, child in ipairs(listContainer:GetChildren()) do
+							if child:IsA("TextButton") or child:IsA("UIListLayout") then
+								child:Destroy()
+							end
 						end
-					end
+						
+						-- reset container zindex
+						container.ZIndex = 1
+						for _, child in ipairs(container:GetDescendants()) do
+							if child:IsA("GuiObject") then
+								child.ZIndex = 1
+							end
+						end
+						
+						-- animate dropdown closing by shrinking the container
+						CreateTween(listContainer, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}, 0.15):Play()
+						task.wait(0.15)
+						listContainer:Destroy()
+						dropdownOpen = false
+						CreateTween(arrow, {Rotation = 0}, 0.2):Play()
+					end)
 					
-					-- animate dropdown closing by shrinking the container
-					CreateTween(listContainer, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}, 0.15):Play()
-					task.wait(0.15)
-					listContainer:Destroy()
-					dropdownOpen = false
-					CreateTween(arrow, {Rotation = 0}, 0.2):Play()
-				end)
-				
-				optionButton.MouseEnter:Connect(function()
-					CreateTween(optionButton, {BackgroundTransparency = 0.5}, 0.15):Play()
-				end)
-				
-				optionButton.MouseLeave:Connect(function()
-					if option ~= currentSelection then
-						CreateTween(optionButton, {BackgroundTransparency = 1}, 0.15):Play()
-					else
-						CreateTween(optionButton, {BackgroundTransparency = 0.7}, 0.15):Play()
-					end
-				end)
+					optionButton.MouseEnter:Connect(function()
+						CreateTween(optionButton, {BackgroundTransparency = 0.5}, 0.15):Play()
+					end)
+					
+					optionButton.MouseLeave:Connect(function()
+						if option ~= currentSelection then
+							CreateTween(optionButton, {BackgroundTransparency = 1}, 0.15):Play()
+						else
+							CreateTween(optionButton, {BackgroundTransparency = 0.7}, 0.15):Play()
+						end
+					end)
+				end
 			end
+			
+			-- initial display of all options
+			updateOptions("")
+			
+			-- listen for text input changes
+			searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+				searchQuery = searchBox.Text
+				updateOptions(searchQuery)
+			end)
+			
+			-- listen for keyboard input when dropdown is open
+			searchConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+				if dropdownOpen and input.UserInputType == Enum.UserInputType.Keyboard then
+					-- focus the search box automatically if not already focused
+					if not searchBox:IsFocused() then
+						searchBox:CaptureFocus()
+					end
+				end
+			end)
 		else
+			-- disconnect search input listener
+			if searchConnection then
+				searchConnection:Disconnect()
+				searchConnection = nil
+			end
+			
 			if container:FindFirstChild("DropdownList") then
 				local listContainer = container.DropdownList
 				
@@ -1810,6 +1905,11 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 				task.wait(0.15)
 				listContainer:Destroy()
 			end
+			
+			if container:FindFirstChild("SearchContainer") then
+				container.SearchContainer:Destroy()
+			end
+			
 			dropdownOpen = false
 			CreateTween(arrow, {Rotation = 0}, 0.2):Play()
 		end
