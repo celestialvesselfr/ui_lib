@@ -2231,7 +2231,7 @@ function UILibrary:UpdateTheme(themeConfig)
 							CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
 						
 						-- update slider fill
-						elseif child.Name == "fill" and child.Parent.Name == "Track" then
+						elseif child.Name == "Fill" and child.Parent.Name == "Track" then
 							CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
 						
 						-- update toggle switch colors
