@@ -2231,14 +2231,14 @@ function UILibrary:UpdateTheme(themeConfig)
 							CreateTween(child, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.3):Play()
 						
 						-- update slider fill
-						elseif child.Name == "Fill" and child.Parent.Name == "Track" then
+						elseif child.Name == "fill" and child.Parent.Name == "Track" then
 							CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
 						
 						-- update toggle switch colors
 						elseif child.Name == "Switch" then
-							-- check if toggle is enabled by checking knob position
+							-- check if toggle is enabled by checking knob position scale
 							local knob = child:FindFirstChild("Knob")
-							if knob and knob.Position.X.Offset > 10 then
+							if knob and knob.Position.X.Scale > 0.5 then
 								CreateTween(child, {BackgroundColor3 = CONFIG.AccentColor}, 0.3):Play()
 							else
 								CreateTween(child, {BackgroundColor3 = CONFIG.BorderColor}, 0.3):Play()
