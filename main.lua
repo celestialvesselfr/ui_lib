@@ -1912,8 +1912,6 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 	end)
 	
 	-- return dropdown object with refresh method
-{{ ... }}
-{{ ... }}
 	local dropdownObject = {
 		Container = container,
 		Options = options,
