@@ -1906,8 +1906,8 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 				dropdownWrapper:Destroy()
 				dropdownOpen = false
 				CreateTween(arrow, {Rotation = 0}, 0.2):Play()
+			end
 		end
-	end
 	end)
 	
 	-- return dropdown object with refresh method
