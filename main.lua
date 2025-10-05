@@ -3,7 +3,6 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local openColorPickerPopup = nil
 local currentTheme = nil
-
 local CONFIG = {
 
 	WindowSize = UDim2.new(0, 650, 0, 500),
