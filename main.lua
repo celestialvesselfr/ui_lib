@@ -6,8 +6,8 @@ local currentTheme = nil
 
 local CONFIG = {
 
-	WindowSize = UDim2.new(0, 650, 0, 500),
-	MinWindowSize = Vector2.new(450, 350),
+	WindowSize = UDim2.new(0, 420, 0, 650),
+	MinWindowSize = Vector2.new(380, 450),
 	AnimationSpeed = 0.3,
 
 	BackgroundColor = Color3.fromRGB(30, 30, 30),
@@ -294,8 +294,13 @@ function UILibrary:CreateUI()
 	screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 	self.ScreenGui = screenGui
 
+	-- Load saved window size or use default
+	local savedSize = self:LoadWindowSize()
+	local initialSize = savedSize or CONFIG.WindowSize
+	CONFIG.WindowSize = initialSize  -- Update CONFIG to use saved size
+
 	local window = CreateRoundedFrame(screenGui, "MainWindow")
-	window.Size = CONFIG.WindowSize
+	window.Size = initialSize
 	window.Position = UDim2.new(0.5, 0, 0.5, 0)
 	window.AnchorPoint = Vector2.new(0.5, 0.5)
 	window.BackgroundColor3 = CONFIG.BackgroundColor
@@ -306,7 +311,7 @@ function UILibrary:CreateUI()
 
 	task.spawn(function()
 		task.wait(0.1)
-		CreateTween(window, {Size = CONFIG.WindowSize}, 0.5):Play()
+		CreateTween(window, {Size = initialSize}, 0.5):Play()
 	end)
 
 	local titleBar = CreateRoundedFrame(window, "TitleBar")
@@ -478,6 +483,11 @@ function UILibrary:SetupInteractions()
 
 	UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if resizing then
+				-- Save the new size when resize is complete
+				self:SaveWindowSize(self.Window.Size)
+				CONFIG.WindowSize = self.Window.Size
+			end
 			resizing = false
 		end
 	end)
@@ -488,6 +498,8 @@ function UILibrary:ToggleMinimize()
     if self.IsMinimized then
 
         self.SizeBeforeMinimize = self.Window.Size
+        -- Save size before minimizing
+        self:SaveWindowSize(self.Window.Size)
 
         CreateTween(self.Window, {Size = UDim2.new(0, 50, 0, 32)}, CONFIG.AnimationSpeed):Play()
 
@@ -508,7 +520,8 @@ function UILibrary:ToggleMinimize()
         self.ControlMaximize.Position = UDim2.new(0, 28, 0.5, 0)
     else
 
-        local targetSize = self.SizeBeforeMinimize or CONFIG.WindowSize
+        -- Use saved size or fall back to SizeBeforeMinimize or CONFIG
+        local targetSize = self:LoadWindowSize() or self.SizeBeforeMinimize or CONFIG.WindowSize
         CreateTween(self.Window, {Size = targetSize}, CONFIG.AnimationSpeed):Play()
 
         CreateTween(self.Window, {BackgroundTransparency = 0.1}, CONFIG.AnimationSpeed):Play()
@@ -537,17 +550,23 @@ function UILibrary:ToggleMaximize()
 		return
 	end
 
-	if self.Window.Size == CONFIG.WindowSize then
+	local savedSize = self:LoadWindowSize() or CONFIG.WindowSize
+	local currentSizeMatches = math.abs(self.Window.Size.X.Offset - savedSize.X.Offset) < 5 and 
+	                           math.abs(self.Window.Size.Y.Offset - savedSize.Y.Offset) < 5
+
+	if currentSizeMatches then
 
 		self.SizeBeforeMaximize = self.Window.Size
+		self:SaveWindowSize(self.Window.Size)
 
 		CreateTween(self.Window, {
 			Size = UDim2.new(0.95, 0, 0.95, 0),
 			Position = UDim2.new(0.5, 0, 0.5, 0)
 		}, CONFIG.AnimationSpeed):Play()
 	else
+		local targetSize = self:LoadWindowSize() or CONFIG.WindowSize
 		CreateTween(self.Window, {
-			Size = CONFIG.WindowSize,
+			Size = targetSize,
 			Position = UDim2.new(0.5, 0, 0.5, 0)
 		}, CONFIG.AnimationSpeed):Play()
 	end
@@ -2676,13 +2695,17 @@ function UILibrary:ToggleUI()
 		if targetVisible then
 			self.Window.Visible = true
 			self.Window.Size = UDim2.new(0, 0, 0, 0)
-			CreateTween(self.Window, {Size = CONFIG.WindowSize}, 0.4):Play()
+			-- Use the current saved size
+			local currentSize = self:LoadWindowSize() or CONFIG.WindowSize
+			CreateTween(self.Window, {Size = currentSize}, 0.4):Play()
 		else
+			-- Save current size before hiding
+			self:SaveWindowSize(self.Window.Size)
 			local hideTween = CreateTween(self.Window, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
 			hideTween:Play()
 			task.wait(0.3)
 			self.Window.Visible = false
-			self.Window.Size = CONFIG.WindowSize
+			self.Window.Size = self:LoadWindowSize() or CONFIG.WindowSize
 		end
 	end
 end
@@ -2943,6 +2966,31 @@ end
 function UILibrary:LoadLastTheme()
 	if isfile("nozomi_themes/last_theme.txt") then
 		return readfile("nozomi_themes/last_theme.txt")
+	end
+	return nil
+end
+
+-- Save window size
+function UILibrary:SaveWindowSize(size)
+	if not isfolder("nozomi_themes") then
+		makefolder("nozomi_themes")
+	end
+	local sizeData = {
+		width = size.X.Offset,
+		height = size.Y.Offset
+	}
+	writefile("nozomi_themes/window_size.json", game:GetService("HttpService"):JSONEncode(sizeData))
+end
+
+-- Load window size
+function UILibrary:LoadWindowSize()
+	if isfile("nozomi_themes/window_size.json") then
+		local success, sizeData = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(readfile("nozomi_themes/window_size.json"))
+		end)
+		if success and sizeData and sizeData.width and sizeData.height then
+			return UDim2.new(0, sizeData.width, 0, sizeData.height)
+		end
 	end
 	return nil
 end
