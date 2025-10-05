@@ -1033,40 +1033,34 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		btn.ImageColor3 = CONFIG.TextColor
 		btn.Parent = actionsContainer
 
-		local progressCircle = Instance.new("Frame")
-		progressCircle.Size = UDim2.new(0, 28, 0, 28)
+		-- Create proximity prompt style progress circle
+		local progressCircle = Instance.new("ImageLabel")
+		progressCircle.Size = UDim2.new(0, 36, 0, 36)
 		progressCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
 		progressCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 		progressCircle.BackgroundTransparency = 1
+		progressCircle.Image = "rbxasset://textures/ui/Controls/RadialFill.png"
+		progressCircle.ImageColor3 = CONFIG.AccentColor
+		progressCircle.ImageTransparency = 1
+		progressCircle.Rotation = -90  -- Rotate image to start at 12 o'clock
 		progressCircle.ZIndex = btn.ZIndex + 1
 		progressCircle.Parent = btn
-
-		local circleStroke = Instance.new("UIStroke")
-		circleStroke.Name = "ProgressStroke"
-		circleStroke.Color = CONFIG.TextColor
-		circleStroke.Thickness = 2.5
-		circleStroke.Transparency = 1
-		circleStroke.Parent = progressCircle
-
-		local circleCorner = Instance.new("UICorner")
-		circleCorner.CornerRadius = UDim.new(1, 0)
-		circleCorner.Parent = progressCircle
-
+		
 		local gradient = Instance.new("UIGradient")
-		gradient.Rotation = -90
+		gradient.Rotation = 0
 		gradient.Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.499, 0),
-			NumberSequenceKeypoint.new(0.5, 1),
+			NumberSequenceKeypoint.new(0.5, 0),
+			NumberSequenceKeypoint.new(0.5001, 1),
 			NumberSequenceKeypoint.new(1, 1)
 		})
-		gradient.Parent = circleStroke
+		gradient.Parent = progressCircle
 
 		local holding = false
 		local holdTime = 0
-		local holdDuration = 1
+		local holdDuration = 0.8  -- Slightly faster for smoother feel
 		local holdConnection
-		local tweenConnection
+		local completeTween
 
 		btn.MouseEnter:Connect(function()
 			tooltip.Visible = true
@@ -1083,8 +1077,12 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			if holdConnection then
 				holdConnection:Disconnect()
 			end
-			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-			gradient.Rotation = -90
+			if completeTween then
+				completeTween:Cancel()
+			end
+			-- Smooth fade out and reset
+			CreateTween(progressCircle, {ImageTransparency = 1, Size = UDim2.new(0, 32, 0, 32)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+			gradient.Rotation = 0
 			btn.Image = defaultIcon
 		end)
 
@@ -1092,9 +1090,13 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			holding = true
 			holdTime = 0
 			btn.Image = defaultIcon
+			progressCircle.Size = UDim2.new(0, 36, 0, 36)
 
 			if holdConnection then
 				holdConnection:Disconnect()
+			end
+			if completeTween then
+				completeTween:Cancel()
 			end
 
 			holdConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
@@ -1102,9 +1104,12 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 					holdTime = holdTime + dt
 					local progress = math.min(holdTime / holdDuration, 1)
 
-					gradient.Rotation = -90 + (progress * 360)
+					-- Rotate gradient from 0 to 360 (12 o'clock full circle)
+					gradient.Rotation = progress * 360
 
-					circleStroke.Transparency = 1 - (progress * 0.7)
+					-- Smooth fade in with easing
+					local fadeProgress = progress ^ 0.5  -- Square root for smooth ease in
+					progressCircle.ImageTransparency = 1 - (fadeProgress * 0.5)
 
 					if progress >= 1 then
 						holding = false
@@ -1112,17 +1117,24 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 							holdConnection:Disconnect()
 						end
 
-						circleStroke.Transparency = 0
+						-- Complete animation: shrink and fade out
 						btn.Image = successIconId
+						
+						local shrinkTween = CreateTween(progressCircle, {
+							Size = UDim2.new(0, 28, 0, 28),
+							ImageTransparency = 1
+						}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+						shrinkTween:Play()
+						completeTween = shrinkTween
 
-						task.wait(0.3)
+						task.wait(0.15)
 						holdCallback()
 
-						task.wait(0.3)
+						task.wait(0.35)
 
 						btn.Image = defaultIcon
-						CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-						gradient.Rotation = -90
+						gradient.Rotation = 0
+						progressCircle.Size = UDim2.new(0, 36, 0, 36)
 					end
 				end
 			end)
@@ -1134,8 +1146,12 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			if holdConnection then
 				holdConnection:Disconnect()
 			end
-			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-			gradient.Rotation = -90
+			if completeTween then
+				completeTween:Cancel()
+			end
+			-- Smooth reset animation
+			CreateTween(progressCircle, {ImageTransparency = 1, Size = UDim2.new(0, 32, 0, 32)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+			gradient.Rotation = 0
 			btn.Image = defaultIcon
 		end)
 
