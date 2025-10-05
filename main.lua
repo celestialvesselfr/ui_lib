@@ -4,6 +4,8 @@ local RunService = game:GetService("RunService")
 local openColorPickerPopup = nil
 local currentTheme = nil
 
+print("test")
+
 local CONFIG = {
 
 	WindowSize = UDim2.new(0, 650, 0, 500),
