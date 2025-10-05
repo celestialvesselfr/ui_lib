@@ -297,7 +297,9 @@ function UILibrary:CreateUI()
 	-- Load saved window size or use default
 	local savedSize = self:LoadWindowSize()
 	local initialSize = savedSize or CONFIG.WindowSize
-	CONFIG.WindowSize = initialSize  -- Update CONFIG to use saved size
+	
+	-- Store the proper size but don't overwrite CONFIG with potentially bad data
+	self.SavedWindowSize = initialSize
 
 	local window = CreateRoundedFrame(screenGui, "MainWindow")
 	window.Size = initialSize
@@ -308,6 +310,7 @@ function UILibrary:CreateUI()
 
 	window.Size = UDim2.new(0, 0, 0, 0)
 	self.Window = window
+	self.IsMaximized = false  -- Track maximize state explicitly
 
 	task.spawn(function()
 		task.wait(0.1)
@@ -486,7 +489,7 @@ function UILibrary:SetupInteractions()
 			if resizing then
 				-- Save the new size when resize is complete
 				self:SaveWindowSize(self.Window.Size)
-				CONFIG.WindowSize = self.Window.Size
+				self.SavedWindowSize = self.Window.Size
 			end
 			resizing = false
 		end
@@ -498,8 +501,10 @@ function UILibrary:ToggleMinimize()
     if self.IsMinimized then
 
         self.SizeBeforeMinimize = self.Window.Size
-        -- Save size before minimizing
-        self:SaveWindowSize(self.Window.Size)
+        -- Don't save minimized size - only save when NOT minimizing
+        if not self.IsMaximized then
+            self:SaveWindowSize(self.Window.Size)
+        end
 
         CreateTween(self.Window, {Size = UDim2.new(0, 50, 0, 32)}, CONFIG.AnimationSpeed):Play()
 
@@ -521,7 +526,7 @@ function UILibrary:ToggleMinimize()
     else
 
         -- Use saved size or fall back to SizeBeforeMinimize or CONFIG
-        local targetSize = self:LoadWindowSize() or self.SizeBeforeMinimize or CONFIG.WindowSize
+        local targetSize = self.SizeBeforeMinimize or self.SavedWindowSize or self:LoadWindowSize() or CONFIG.WindowSize
         CreateTween(self.Window, {Size = targetSize}, CONFIG.AnimationSpeed):Play()
 
         CreateTween(self.Window, {BackgroundTransparency = 0.1}, CONFIG.AnimationSpeed):Play()
@@ -550,10 +555,9 @@ function UILibrary:ToggleMaximize()
 		return
 	end
 
-	-- Check if currently maximized (using scale-based size)
-	local isMaximized = self.Window.Size.X.Scale > 0.5
+	self.IsMaximized = not self.IsMaximized
 
-	if not isMaximized then
+	if self.IsMaximized then
 		-- Currently normal size, maximize it
 		self.SizeBeforeMaximize = self.Window.Size
 		self:SaveWindowSize(self.Window.Size)
@@ -2704,16 +2708,19 @@ function UILibrary:ToggleUI()
 			self.Window.Visible = true
 			self.Window.Size = UDim2.new(0, 0, 0, 0)
 			-- Use the current saved size
-			local currentSize = self:LoadWindowSize() or CONFIG.WindowSize
+			local currentSize = self.SavedWindowSize or self:LoadWindowSize() or CONFIG.WindowSize
 			CreateTween(self.Window, {Size = currentSize}, 0.4):Play()
 		else
-			-- Save current size before hiding
-			self:SaveWindowSize(self.Window.Size)
+			-- Save current size before hiding (only if not maximized)
+			if not self.IsMaximized then
+				self:SaveWindowSize(self.Window.Size)
+				self.SavedWindowSize = self.Window.Size
+			end
 			local hideTween = CreateTween(self.Window, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
 			hideTween:Play()
 			task.wait(0.3)
 			self.Window.Visible = false
-			self.Window.Size = self:LoadWindowSize() or CONFIG.WindowSize
+			self.Window.Size = self.SavedWindowSize or self:LoadWindowSize() or CONFIG.WindowSize
 		end
 	end
 end
@@ -2997,7 +3004,10 @@ function UILibrary:LoadWindowSize()
 			return game:GetService("HttpService"):JSONDecode(readfile("nozomi_themes/window_size.json"))
 		end)
 		if success and sizeData and sizeData.width and sizeData.height then
-			return UDim2.new(0, sizeData.width, 0, sizeData.height)
+			-- Validate size is reasonable (not minimized or broken)
+			if sizeData.width >= CONFIG.MinWindowSize.X and sizeData.height >= CONFIG.MinWindowSize.Y then
+				return UDim2.new(0, sizeData.width, 0, sizeData.height)
+			end
 		end
 	end
 	return nil
@@ -3080,4 +3090,3 @@ function UILibrary:ApplyTheme(theme, themeName)
 end
 
 return UILibrary
--- hi lol
