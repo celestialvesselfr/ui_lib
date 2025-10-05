@@ -999,13 +999,12 @@ function UILibrary:CreateButton(tab, name, callback)
 		callback()
 	end)
 
-	local originalColor = CONFIG.AccentColor
 	clickButton.MouseEnter:Connect(function()
-		CreateTween(button, {BackgroundColor3 = button.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1)}, 0.25):Play()
+		CreateTween(button, {BackgroundColor3 = CONFIG.AccentColor:Lerp(Color3.new(1, 1, 1), 0.15)}, 0.2):Play()
 	end)
 
 	clickButton.MouseLeave:Connect(function()
-		CreateTween(button, {BackgroundColor3 = originalColor}, 0.25):Play()
+		CreateTween(button, {BackgroundColor3 = CONFIG.AccentColor}, 0.2):Play()
 	end)
 
 	return button
@@ -1127,7 +1126,6 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		btn.MouseButton1Down:Connect(function()
 			holding = true
 			holdTime = 0
-			circleStroke.Transparency = 0.5
 			
 			if holdConnection then
 				holdConnection:Disconnect()
@@ -1138,9 +1136,13 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 					holdTime = holdTime + dt
 					local progress = math.min(holdTime / holdDuration, 1)
 					
-					-- Animate rotation for circular progress
-					gradient.Rotation = progress * 360
-					circleStroke.Transparency = 0.5 - (progress * 0.2)
+					-- Smooth circular progress animation that fades in
+					-- Create a gradient effect: invisible at start, visible as it progresses
+					local arcLength = progress * 360
+					gradient.Rotation = arcLength
+					
+					-- Fade in the stroke as progress increases (starts invisible, becomes visible)
+					circleStroke.Transparency = 1 - (progress * 0.7)
 					
 					if progress >= 1 then
 						holding = false
@@ -1218,18 +1220,19 @@ function UILibrary:CreateInput(tab, name, placeholder, callback)
 	input.ClearTextOnFocus = false
 	input.Parent = inputBox
 
+	-- Call callback on any text change
+	input:GetPropertyChangedSignal("Text"):Connect(function()
+		callback(input.Text)
+	end)
+	
+	-- Also call on focus lost with Enter
 	input.FocusLost:Connect(function(enterPressed)
-		if enterPressed then
-			callback(input.Text)
-		end
+		callback(input.Text)
+		CreateTween(inputBox, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.2):Play()
 	end)
 
 	input.Focused:Connect(function()
 		CreateTween(inputBox, {BackgroundColor3 = CONFIG.SurfaceColor:Lerp(CONFIG.AccentColor, 0.1)}, 0.2):Play()
-	end)
-
-	input.FocusLost:Connect(function()
-		CreateTween(inputBox, {BackgroundColor3 = CONFIG.SurfaceColor}, 0.2):Play()
 	end)
 
 	return container
