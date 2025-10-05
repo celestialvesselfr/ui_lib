@@ -48,6 +48,9 @@ local CONFIG = {
 	CornerRadius = 12,
 	ShadowTransparency = 0.85,
 	GlassTransparency = 0.15,
+	
+	-- notifications
+	NotificationCountdownDirection = "downwards", -- "downwards", "upwards", "center"
 }
 
 -- theme presets
@@ -148,6 +151,14 @@ local THEME_PRESETS = {
 		SecondaryTextColor = Color3.fromRGB(158, 143, 165),
 		BorderColor = Color3.fromRGB(232, 220, 238)
 	},
+	["soft pastel dark"] = {
+		BackgroundColor = Color3.fromRGB(42, 38, 50),
+		SurfaceColor = Color3.fromRGB(58, 52, 70),
+		AccentColor = Color3.fromRGB(203, 166, 247),
+		TextColor = Color3.fromRGB(236, 225, 245),
+		SecondaryTextColor = Color3.fromRGB(184, 170, 198),
+		BorderColor = Color3.fromRGB(82, 74, 96)
+	},
 	["soft mint"] = {
 		BackgroundColor = Color3.fromRGB(244, 250, 248),
 		SurfaceColor = Color3.fromRGB(250, 255, 252),
@@ -155,10 +166,50 @@ local THEME_PRESETS = {
 		TextColor = Color3.fromRGB(75, 95, 88),
 		SecondaryTextColor = Color3.fromRGB(143, 165, 158),
 		BorderColor = Color3.fromRGB(220, 238, 232)
+	},
+	["soft mint dark"] = {
+		BackgroundColor = Color3.fromRGB(34, 48, 44),
+		SurfaceColor = Color3.fromRGB(46, 62, 57),
+		AccentColor = Color3.fromRGB(134, 205, 186),
+		TextColor = Color3.fromRGB(214, 235, 228),
+		SecondaryTextColor = Color3.fromRGB(158, 190, 180),
+		BorderColor = Color3.fromRGB(74, 102, 94)
+	},
+	["soft lavender"] = {
+		BackgroundColor = Color3.fromRGB(248, 246, 255),
+		SurfaceColor = Color3.fromRGB(255, 251, 255),
+		AccentColor = Color3.fromRGB(186, 157, 255),
+		TextColor = Color3.fromRGB(82, 72, 110),
+		SecondaryTextColor = Color3.fromRGB(146, 135, 173),
+		BorderColor = Color3.fromRGB(228, 221, 250)
+	},
+	["soft lavender dark"] = {
+		BackgroundColor = Color3.fromRGB(43, 38, 59),
+		SurfaceColor = Color3.fromRGB(58, 52, 78),
+		AccentColor = Color3.fromRGB(186, 157, 255),
+		TextColor = Color3.fromRGB(230, 223, 255),
+		SecondaryTextColor = Color3.fromRGB(180, 170, 208),
+		BorderColor = Color3.fromRGB(84, 75, 115)
+	},
+	["soft blue"] = {
+		BackgroundColor = Color3.fromRGB(242, 248, 255),
+		SurfaceColor = Color3.fromRGB(250, 254, 255),
+		AccentColor = Color3.fromRGB(132, 176, 255),
+		TextColor = Color3.fromRGB(68, 92, 128),
+		SecondaryTextColor = Color3.fromRGB(132, 156, 189),
+		BorderColor = Color3.fromRGB(212, 225, 245)
+	},
+	["soft blue dark"] = {
+		BackgroundColor = Color3.fromRGB(32, 42, 58),
+		SurfaceColor = Color3.fromRGB(44, 56, 74),
+		AccentColor = Color3.fromRGB(132, 176, 255),
+		TextColor = Color3.fromRGB(217, 230, 255),
+		SecondaryTextColor = Color3.fromRGB(162, 184, 214),
+		BorderColor = Color3.fromRGB(66, 84, 112)
 	}
 }
 
--- protected presets that cannot be deleted
+-- presets that cannot be deleted
 local PROTECTED_PRESETS = {
 	["dark mode"] = true,
 	["light mode"] = true,
@@ -172,15 +223,21 @@ local PROTECTED_PRESETS = {
 	["monkeytype bento"] = true,
 	["monkeytype bento dark"] = true,
 	["soft pastel"] = true,
-	["soft mint"] = true
+	["soft pastel dark"] = true,
+	["soft mint"] = true,
+	["soft mint dark"] = true,
+	["soft lavender"] = true,
+	["soft lavender dark"] = true,
+	["soft blue"] = true,
+	["soft blue dark"] = true
 }
 
 -- util functions
-local function CreateTween(instance, properties, duration)
+local function CreateTween(instance, properties, duration, easingStyle, easingDirection)
 	local tweenInfo = TweenInfo.new(
 		duration or CONFIG.AnimationSpeed,
-		Enum.EasingStyle.Quint,
-		Enum.EasingDirection.Out
+		easingStyle or Enum.EasingStyle.Quint,
+		easingDirection or Enum.EasingDirection.Out
 	)
 	return TweenService:Create(instance, tweenInfo, properties)
 end
@@ -260,7 +317,7 @@ function UILibrary:CreateUI()
 		CreateTween(window, {Size = CONFIG.WindowSize}, 0.5):Play()
 	end)
 
-	-- title bar-
+	-- title bar
 	local titleBar = CreateRoundedFrame(window, "TitleBar")
 	titleBar.Size = UDim2.new(1, 0, 0, 44)
 	titleBar.Position = UDim2.new(0, 0, 0, 0)
@@ -302,11 +359,9 @@ function UILibrary:CreateUI()
 		button.MouseEnter:Connect(function()
 			CreateTween(button, {BackgroundColor3 = controlColors[i]:Lerp(Color3.new(1, 1, 1), 0.2)}, 0.25):Play()
 		end)
-
 		button.MouseLeave:Connect(function()
 			CreateTween(button, {BackgroundColor3 = controlColors[i]}, 0.25):Play()
 		end)
-
 		self["Control" .. name] = button
 	end
 
@@ -340,7 +395,6 @@ function UILibrary:CreateUI()
 	tabContainer.ScrollBarImageColor3 = CONFIG.AccentColor
 	tabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 	tabContainer.Parent = tabBar
-
 	local tabLayout = Instance.new("UIListLayout")
 	tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	tabLayout.Padding = UDim.new(0, 4)
@@ -371,7 +425,6 @@ function UILibrary:SetupInteractions()
 	local dragging = false
 	local dragStart
 	local startPos
-
 	-- window dragging
 	self.TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -380,7 +433,6 @@ function UILibrary:SetupInteractions()
 			startPos = self.Window.Position
 		end
 	end)
-
 	UserInputService.InputChanged:Connect(function(input)
 		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStart
@@ -640,8 +692,8 @@ function UILibrary:AddTab(name, icon)
 		return self:CreateToggle(tab, name, default, callback)
 	end
 
-	tab.AddSlider = function(_, name, min, max, default, callback)
-		return self:CreateSlider(tab, name, min, max, default, callback)
+	tab.AddSlider = function(_, name, min, max, default, callback, allowDecimals)
+		return self:CreateSlider(tab, name, min, max, default, callback, allowDecimals)
 	end
 
 	tab.AddButton = function(_, name, callback)
@@ -759,7 +811,9 @@ function UILibrary:CreateToggle(tab, name, default, callback)
 	return container
 end
 
-function UILibrary:CreateSlider(tab, name, min, max, default, callback)
+function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDecimals)
+	allowDecimals = allowDecimals or false
+	
 	local container = CreateRoundedFrame(tab.Content, "Slider_" .. name)
 	container.Size = UDim2.new(1, 0, 0, CONFIG.ElementHeight + 12)
 	container.BackgroundTransparency = 0.3
@@ -768,13 +822,19 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback)
 	label.Size = UDim2.new(0.7, 0, 0, 20)
 	label.Position = UDim2.new(0, CONFIG.Padding, 0, 8)
 
-	-- value display
-	local valueLabel = CreateTextLabel(container, tostring(default), 14)
-	valueLabel.Size = UDim2.new(0.3, -CONFIG.Padding, 0, 20)
-	valueLabel.Position = UDim2.new(0.7, 0, 0, 8)
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	valueLabel.Font = Enum.Font.GothamBold
-	valueLabel.TextColor3 = CONFIG.AccentColor
+	-- value display (now a TextBox for direct input)
+	local valueBox = Instance.new("TextBox")
+	valueBox.Name = "ValueBox"
+	valueBox.Size = UDim2.new(0.3, -CONFIG.Padding, 0, 20)
+	valueBox.Position = UDim2.new(0.7, 0, 0, 8)
+	valueBox.BackgroundTransparency = 1
+	valueBox.Text = tostring(default)
+	valueBox.TextColor3 = CONFIG.AccentColor
+	valueBox.TextXAlignment = Enum.TextXAlignment.Right
+	valueBox.Font = Enum.Font.GothamBold
+	valueBox.TextSize = 14
+	valueBox.ClearTextOnFocus = false
+	valueBox.Parent = container
 
 	-- slider track
 	local track = Instance.new("Frame")
@@ -828,7 +888,13 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback)
 
 	local function updateSlider(inputPosition)
 		local relativeX = math.clamp((inputPosition - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-		currentValue = math.floor(min + (max - min) * relativeX)
+		
+		if allowDecimals then
+			currentValue = min + (max - min) * relativeX
+			currentValue = math.floor(currentValue * 100 + 0.5) / 100 -- Round to 2 decimal places
+		else
+			currentValue = math.floor(min + (max - min) * relativeX)
+		end
 
 		local targetPos = UDim2.new(relativeX, 0, 0.5, 0)
 		local targetFill = UDim2.new(relativeX, 0, 1, 0)
@@ -836,7 +902,24 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback)
 		CreateTween(thumb, {Position = targetPos}, 0.1):Play()
 		CreateTween(fill, {Size = targetFill}, 0.1):Play()
 
-		valueLabel.Text = tostring(currentValue)
+		valueBox.Text = tostring(currentValue)
+		callback(currentValue)
+	end
+	
+	local function updateFromValue(value)
+		currentValue = math.clamp(value, min, max)
+		if not allowDecimals then
+			currentValue = math.floor(currentValue)
+		end
+		
+		local relativeX = (currentValue - min) / (max - min)
+		local targetPos = UDim2.new(relativeX, 0, 0.5, 0)
+		local targetFill = UDim2.new(relativeX, 0, 1, 0)
+		
+		CreateTween(thumb, {Position = targetPos}, 0.1):Play()
+		CreateTween(fill, {Size = targetFill}, 0.1):Play()
+		
+		valueBox.Text = tostring(currentValue)
 		callback(currentValue)
 	end
 
@@ -864,6 +947,23 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			updateSlider(input.Position.X)
 		end
+	end)
+	
+	-- TextBox input handling
+	valueBox.FocusLost:Connect(function(enterPressed)
+		local inputValue = tonumber(valueBox.Text)
+		if inputValue then
+			updateFromValue(inputValue)
+		else
+			-- Invalid input, revert to current value
+			valueBox.Text = tostring(currentValue)
+		end
+	end)
+	
+	-- Highlight text on focus
+	valueBox.Focused:Connect(function()
+		valueBox.SelectionStart = 1
+		valueBox.CursorPosition = #valueBox.Text + 1
 	end)
 
 	return container
@@ -2340,7 +2440,6 @@ function UILibrary:SaveCurrentThemeAsPreset(presetName)
 end
 
 function UILibrary:DeletePreset(presetName)
-	-- deletes a custom preset (cannot delete protected presets)
 	if PROTECTED_PRESETS[presetName] then
 		return false, "Cannot delete protected preset"
 	end
@@ -2461,7 +2560,6 @@ function UILibrary:SetWatermarkStyle(style)
 	print("SetWatermarkStyle:", style)
 end
 
--- Notification System
 local notificationQueue = {}
 local activeNotifications = {}
 local maxNotifications = 5
@@ -2476,7 +2574,6 @@ local function createNotificationContainer()
 	container.Position = UDim2.new(1, -360, 0, 10)
 	container.BackgroundTransparency = 1
 	container.ZIndex = 10000
-	-- Parent to PlayerGui where the main UI is, not CoreGui
 	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 	container.Parent = playerGui:FindFirstChild("UILibrary") or playerGui
 	
@@ -2526,13 +2623,14 @@ function UILibrary:SendNotification(config)
 	-- accent bar on left
 	local accentBar = Instance.new("Frame")
 	accentBar.Name = "AccentBar"
-	accentBar.Size = UDim2.new(0, 3, 1, 0)
+	accentBar.Size = UDim2.new(0, 4, 1, 0)
 	accentBar.BackgroundColor3 = accentColor
 	accentBar.BorderSizePixel = 0
+	accentBar.ClipsDescendants = true
 	accentBar.Parent = notif
 	
 	local accentCorner = Instance.new("UICorner")
-	accentCorner.CornerRadius = UDim.new(0, 10)
+	accentCorner.CornerRadius = UDim.new(1, 0)
 	accentCorner.Parent = accentBar
 	
 	-- icon
@@ -2634,8 +2732,35 @@ function UILibrary:SendNotification(config)
 		CreateTween(closeBtn, {TextColor3 = CONFIG.SecondaryTextColor}, 0.2):Play()
 	end)
 	
-	-- auto close after duration
+	-- countdown animation for accent bar
 	if duration > 0 then
+		local direction = CONFIG.NotificationCountdownDirection
+		local targetSize, targetPosition
+		
+		if direction == "downwards" then
+			-- Shrink from top to bottom
+			accentBar.AnchorPoint = Vector2.new(0, 0)
+			accentBar.Position = UDim2.new(0, 0, 0, 0)
+			targetSize = UDim2.new(0, 4, 0, 0)
+			targetPosition = UDim2.new(0, 0, 1, 0)
+		elseif direction == "upwards" then
+			-- Shrink from bottom to top
+			accentBar.AnchorPoint = Vector2.new(0, 1)
+			accentBar.Position = UDim2.new(0, 0, 1, 0)
+			targetSize = UDim2.new(0, 4, 0, 0)
+			targetPosition = UDim2.new(0, 0, 0, 0)
+		elseif direction == "center" then
+			-- Shrink from both ends to center
+			accentBar.AnchorPoint = Vector2.new(0, 0.5)
+			accentBar.Position = UDim2.new(0, 0, 0.5, 0)
+			targetSize = UDim2.new(0, 4, 0, 0)
+			targetPosition = UDim2.new(0, 0, 0.5, 0)
+		end
+		
+		-- Animate the countdown
+		CreateTween(accentBar, {Size = targetSize, Position = targetPosition}, duration, Enum.EasingStyle.Linear):Play()
+		
+		-- Auto close after duration
 		task.delay(duration, function()
 			if notif and notif.Parent then
 				closeNotification()
