@@ -2623,10 +2623,10 @@ function UILibrary:SendNotification(config)
 	-- accent bar on left
 	local accentBar = Instance.new("Frame")
 	accentBar.Name = "AccentBar"
-	accentBar.Size = UDim2.new(0, 4, 1, 0)
+	accentBar.Size = UDim2.new(0, 4, 1, -8)
+	accentBar.Position = UDim2.new(0, 4, 0, 4)
 	accentBar.BackgroundColor3 = accentColor
 	accentBar.BorderSizePixel = 0
-	accentBar.ClipsDescendants = true
 	accentBar.Parent = notif
 	
 	local accentCorner = Instance.new("UICorner")
@@ -2740,21 +2740,21 @@ function UILibrary:SendNotification(config)
 		if direction == "downwards" then
 			-- Shrink from top to bottom
 			accentBar.AnchorPoint = Vector2.new(0, 0)
-			accentBar.Position = UDim2.new(0, 0, 0, 0)
+			accentBar.Position = UDim2.new(0, 4, 0, 4)
 			targetSize = UDim2.new(0, 4, 0, 0)
-			targetPosition = UDim2.new(0, 0, 1, 0)
+			targetPosition = UDim2.new(0, 4, 1, -4)
 		elseif direction == "upwards" then
 			-- Shrink from bottom to top
 			accentBar.AnchorPoint = Vector2.new(0, 1)
-			accentBar.Position = UDim2.new(0, 0, 1, 0)
+			accentBar.Position = UDim2.new(0, 4, 1, -4)
 			targetSize = UDim2.new(0, 4, 0, 0)
-			targetPosition = UDim2.new(0, 0, 0, 0)
+			targetPosition = UDim2.new(0, 4, 0, 4)
 		elseif direction == "center" then
 			-- Shrink from both ends to center
 			accentBar.AnchorPoint = Vector2.new(0, 0.5)
-			accentBar.Position = UDim2.new(0, 0, 0.5, 0)
+			accentBar.Position = UDim2.new(0, 4, 0.5, 0)
 			targetSize = UDim2.new(0, 4, 0, 0)
-			targetPosition = UDim2.new(0, 0, 0.5, 0)
+			targetPosition = UDim2.new(0, 4, 0.5, 0)
 		end
 		
 		-- Animate the countdown
