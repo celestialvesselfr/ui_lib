@@ -760,13 +760,16 @@ function UILibrary:CreateToggle(tab, name, default, callback)
 		callback(enabled)
 	end)
 
-	-- Add SetValue method for config loading
-	container.SetValue = function(value)
-		enabled = value
-		updateToggle(false)
-	end
+	-- Return table object with SetValue method
+	local toggleObject = {
+		Container = container,
+		SetValue = function(value)
+			enabled = value
+			updateToggle(false)
+		end
+	}
 
-	return container
+	return toggleObject
 end
 
 function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDecimals)
@@ -908,7 +911,6 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDec
 		if inputValue then
 			updateFromValue(inputValue)
 		else
-
 			valueBox.Text = tostring(currentValue)
 		end
 	end)
@@ -918,7 +920,15 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDec
 		valueBox.CursorPosition = #valueBox.Text + 1
 	end)
 
-	return container
+	-- Return table object with SetValue method
+	local sliderObject = {
+		Container = container,
+		SetValue = function(value)
+			updateFromValue(value)
+		end
+	}
+
+	return sliderObject
 end
 
 function UILibrary:CreateButton(tab, name, callback)
@@ -926,7 +936,6 @@ function UILibrary:CreateButton(tab, name, callback)
 	button.Size = UDim2.new(1, 0, 0, CONFIG.ElementHeight)
 	button.BackgroundColor3 = CONFIG.AccentColor
 	button.BackgroundTransparency = 0
-
 	local label = CreateTextLabel(button, name, 15)
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.TextXAlignment = Enum.TextXAlignment.Center
@@ -1175,12 +1184,15 @@ function UILibrary:CreateInput(tab, name, placeholder, callback)
 		CreateTween(inputBox, {BackgroundColor3 = CONFIG.SurfaceColor:Lerp(CONFIG.AccentColor, 0.1)}, 0.2):Play()
 	end)
 
-	-- Add SetValue method for config loading
-	container.SetValue = function(value)
-		input.Text = value
-	end
+	-- Return table object with SetValue method
+	local inputObject = {
+		Container = container,
+		SetValue = function(value)
+			input.Text = value
+		end
+	}
 
-	return container
+	return inputObject
 end
 
 function UILibrary:CreateColorPicker(tab, name, default, callback)
@@ -1856,7 +1868,20 @@ function UILibrary:CreateColorPicker(tab, name, default, callback)
 			end)
 		end
 	end)
-	return container
+	
+	-- Return table object with SetColor method
+	local colorPickerObject = {
+		Container = container,
+		SetColor = function(color)
+			currentColor = color
+			colorPreview.BackgroundColor3 = color
+			rgb[1] = math.floor(color.R * 255)
+			rgb[2] = math.floor(color.G * 255)
+			rgb[3] = math.floor(color.B * 255)
+		end
+	}
+	
+	return colorPickerObject
 end
 
 function UILibrary:CreateDropdown(tab, name, options, default, callback)
@@ -2317,21 +2342,24 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 		unbindButton.Visible = true
 	end)
 
-	-- Add SetValue method for config loading
-	container.SetValue = function(value)
-		currentKey = value
-		if value and value ~= "" then
-			keybindLabel.Text = value
-			originalText = value
-			updateButtonSize(value, false)
-		else
-			keybindLabel.Text = "not bound"
-			originalText = "not bound"
-			updateButtonSize("not bound", false)
+	-- Return table object with SetValue method
+	local keybindObject = {
+		Container = container,
+		SetValue = function(value)
+			currentKey = value
+			if value and value ~= "" then
+				keybindLabel.Text = value
+				originalText = value
+				updateButtonSize(value, false)
+			else
+				keybindLabel.Text = "not bound"
+				originalText = "not bound"
+				updateButtonSize("not bound", false)
+			end
 		end
-	end
+	}
 
-	return container
+	return keybindObject
 end
 
 function UILibrary:UpdateTheme(themeConfig)
