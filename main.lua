@@ -1071,9 +1071,9 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		btn.ImageColor3 = CONFIG.TextColor
 		btn.Parent = actionsContainer
 		
-		-- Circular progress indicator using UIGradient trick
+		-- Circular progress indicator using arc drawing technique
 		local progressCircle = Instance.new("Frame")
-		progressCircle.Size = UDim2.new(0, 32, 0, 32)
+		progressCircle.Size = UDim2.new(0, 34, 0, 34)
 		progressCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
 		progressCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 		progressCircle.BackgroundTransparency = 1
@@ -1091,9 +1091,15 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		circleCorner.CornerRadius = UDim.new(1, 0)
 		circleCorner.Parent = progressCircle
 		
-		-- Gradient for circular progress animation
+		-- Gradient for circular arc effect - creates visible/invisible sections
 		local gradient = Instance.new("UIGradient")
-		gradient.Rotation = 0
+		gradient.Rotation = 90
+		gradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),    -- Invisible at start
+			NumberSequenceKeypoint.new(0.5, 1),  -- Invisible at middle
+			NumberSequenceKeypoint.new(0.5, 0),  -- Visible at middle
+			NumberSequenceKeypoint.new(1, 0)     -- Visible at end
+		})
 		gradient.Parent = circleStroke
 		
 		local holding = false
@@ -1112,20 +1118,19 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		
 		btn.MouseLeave:Connect(function()
 			tooltip.Visible = false
-			if not holding then
-				holding = false
-				holdTime = 0
-				if holdConnection then
-					holdConnection:Disconnect()
-				end
-				CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-				gradient.Rotation = 0
+			holding = false
+			holdTime = 0
+			if holdConnection then
+				holdConnection:Disconnect()
 			end
+			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
+			gradient.Rotation = 90
 		end)
 		
 		btn.MouseButton1Down:Connect(function()
 			holding = true
 			holdTime = 0
+			circleStroke.Transparency = 0.3  -- Make stroke visible when holding
 			
 			if holdConnection then
 				holdConnection:Disconnect()
@@ -1136,13 +1141,9 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 					holdTime = holdTime + dt
 					local progress = math.min(holdTime / holdDuration, 1)
 					
-					-- Smooth circular progress animation that fades in
-					-- Create a gradient effect: invisible at start, visible as it progresses
-					local arcLength = progress * 360
-					gradient.Rotation = arcLength
-					
-					-- Fade in the stroke as progress increases (starts invisible, becomes visible)
-					circleStroke.Transparency = 1 - (progress * 0.7)
+					-- Rotate gradient to create arc loading effect
+					-- As it rotates, the visible portion (arc) grows around the circle
+					gradient.Rotation = 90 + (progress * 360)
 					
 					if progress >= 1 then
 						holding = false
@@ -1150,9 +1151,10 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 							holdConnection:Disconnect()
 						end
 						
-						-- Success animation
+						-- Success animation - full circle, change to green
+						circleStroke.Transparency = 0
 						CreateTween(btn, {ImageColor3 = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
-						CreateTween(circleStroke, {Color = Color3.fromRGB(52, 199, 89), Transparency = 0.3}, 0.2):Play()
+						CreateTween(circleStroke, {Color = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
 						
 						task.wait(0.2)
 						holdCallback()
@@ -1160,7 +1162,7 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 						task.wait(0.2)
 						CreateTween(btn, {ImageColor3 = CONFIG.TextColor}, 0.3):Play()
 						CreateTween(circleStroke, {Color = CONFIG.TextColor, Transparency = 1}, 0.3):Play()
-						gradient.Rotation = 0
+						gradient.Rotation = 90
 					end
 				end
 			end)
@@ -1173,19 +1175,19 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 				holdConnection:Disconnect()
 			end
 			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-			gradient.Rotation = 0
+			gradient.Rotation = 90
 		end)
 		
 		return btn
 	end
 	
-	-- Load button
-	createActionButton("rbxassetid://10723434711", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
+	-- Load button (download icon)
+	createActionButton("rbxassetid://10734896876", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
 	
-	-- Save button  
-	createActionButton("rbxassetid://10747372992", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
+	-- Save button (floppy disk icon)
+	createActionButton("rbxassetid://10734924532", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
 	
-	-- Delete button
+	-- Delete button (X icon)
 	createActionButton("rbxassetid://10747384394", UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete")
 	
 	return container
