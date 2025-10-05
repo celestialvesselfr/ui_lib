@@ -880,15 +880,13 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDec
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = thumb
 
-	-- add shadow to thumb (stored for theme updates)
+	-- add shadow to thumb
 	local thumbShadow = Instance.new("UIStroke")
+	thumbShadow.Name = "ThumbStroke"
 	thumbShadow.Color = CONFIG.AccentColor
 	thumbShadow.Thickness = 2
 	thumbShadow.Transparency = 0.5
 	thumbShadow.Parent = thumb
-	
-	-- Store reference for theme updates
-	thumb.thumbShadow = thumbShadow
 
 	local dragging = false
 	local currentValue = default
@@ -2842,7 +2840,9 @@ function UILibrary:SendNotification(config)
 		end
 	end
 	
+	-- close function
 	local function closeNotification()
+		-- remove from active list
 		for i, n in ipairs(activeNotifications) do
 			if n == notif then
 				table.remove(activeNotifications, i)
@@ -2850,6 +2850,7 @@ function UILibrary:SendNotification(config)
 			end
 		end
 		
+		-- animate out
 		CreateTween(notif, {Position = UDim2.new(1, 10, 0, notif.Position.Y.Offset)}, 0.3):Play()
 		task.spawn(function()
 			task.wait(0.3)
@@ -2858,8 +2859,10 @@ function UILibrary:SendNotification(config)
 		end)
 	end
 	
+	-- close button click
 	closeBtn.MouseButton1Click:Connect(closeNotification)
 	
+	-- hover effects
 	closeBtn.MouseEnter:Connect(function()
 		CreateTween(closeBtn, {TextColor3 = CONFIG.TextColor}, 0.2):Play()
 	end)
@@ -2867,29 +2870,35 @@ function UILibrary:SendNotification(config)
 		CreateTween(closeBtn, {TextColor3 = CONFIG.SecondaryTextColor}, 0.2):Play()
 	end)
 	
+	-- countdown animation for accent bar
 	if duration > 0 then
 		local direction = CONFIG.NotificationCountdownDirection
 		local targetSize, targetPosition
 		
 		if direction == "downwards" then
+			-- Shrink from top to bottom
 			accentBar.AnchorPoint = Vector2.new(0, 0)
 			accentBar.Position = UDim2.new(0, 4, 0, 4)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 1, -4)
 		elseif direction == "upwards" then
+			-- Shrink from bottom to top
 			accentBar.AnchorPoint = Vector2.new(0, 1)
 			accentBar.Position = UDim2.new(0, 4, 1, -4)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 0, 4)
 		elseif direction == "center" then
+			-- Shrink from both ends to center
 			accentBar.AnchorPoint = Vector2.new(0, 0.5)
 			accentBar.Position = UDim2.new(0, 4, 0.5, 0)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 0.5, 0)
 		end
 		
+		-- Animate the countdown
 		CreateTween(accentBar, {Size = targetSize, Position = targetPosition}, duration, Enum.EasingStyle.Linear):Play()
 		
+		-- Auto close after duration
 		task.delay(duration, function()
 			if notif and notif.Parent then
 				closeNotification()
@@ -2931,6 +2940,7 @@ function UILibrary:ClearNotifications()
 	activeNotifications = {}
 end
 
+
 function UILibrary:GetCurrentTheme()
 	return {
 		BackgroundColor = CONFIG.BackgroundColor,
@@ -2957,7 +2967,7 @@ function UILibrary:ApplyTheme(theme)
 	if theme.BorderColor then
 		CONFIG.BorderColor = theme.BorderColor
 	end
-
+	
 	if self.Window then
 		self.Window.BackgroundColor3 = CONFIG.BackgroundColor
 	end
@@ -2988,8 +2998,11 @@ function UILibrary:ApplyTheme(theme)
 						end
 						
 						local thumb = element:FindFirstChild("Thumb", true)
-						if thumb and thumb.thumbShadow then
-							thumb.thumbShadow.Color = CONFIG.AccentColor
+						if thumb then
+							local thumbStroke = thumb:FindFirstChild("ThumbStroke")
+							if thumbStroke then
+								thumbStroke.Color = CONFIG.AccentColor
+							end
 						end
 						
 						if element.Name:match("^Button_") then
@@ -3000,6 +3013,7 @@ function UILibrary:ApplyTheme(theme)
 			end
 		end
 	end
+	
 	if self.SelectedTab and self.Tabs[self.SelectedTab] then
 		local selectedButton = self.Tabs[self.SelectedTab].Button
 		if selectedButton then
