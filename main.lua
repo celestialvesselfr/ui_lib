@@ -1,12 +1,3 @@
--- celestialvessel ui lib
--- idk macos inspired ig
--- has some ui elements like sliders, toggles, and such
--- i tried animate stuff where i can
--- my ui lib is pretty bad and might have some rough spots but oh well ¯\_(ツ)_/¯
-
--- dont skid my stuff pls
--- credit me if u use it
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -43,6 +34,13 @@ local CONFIG = {
 	GlassTransparency = 0.15,
 
 	NotificationCountdownDirection = "downwards",
+}
+
+local ICON_ASSETS = {
+	Load = "rbxassetid://6031097220",
+	Save = "rbxassetid://6031071052",
+	Delete = "rbxassetid://10747384394",
+	Success = "rbxassetid://6031068426"
 }
 
 local THEME_PRESETS = {
@@ -1000,12 +998,15 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 	tooltipLabel.Position = UDim2.new(0, 4, 0, 0)
 	tooltipLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-	local function createActionButton(icon, position, holdCallback, tooltipText)
+	local function createActionButton(iconId, position, holdCallback, tooltipText, successIconId)
+		successIconId = successIconId or ICON_ASSETS.Success
+		local defaultIcon = iconId
+
 		local btn = Instance.new("ImageButton")
 		btn.Size = UDim2.new(0, 24, 0, 24)
 		btn.Position = position
 		btn.BackgroundTransparency = 1
-		btn.Image = icon
+		btn.Image = iconId
 		btn.ImageColor3 = CONFIG.TextColor
 		btn.Parent = actionsContainer
 
@@ -1061,12 +1062,13 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			end
 			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
 			gradient.Rotation = -90
+			btn.Image = defaultIcon
 		end)
 
 		btn.MouseButton1Down:Connect(function()
 			holding = true
 			holdTime = 0
-			local originalIcon = btn.Image
+			btn.Image = defaultIcon
 
 			if holdConnection then
 				holdConnection:Disconnect()
@@ -1088,14 +1090,14 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 						end
 
 						circleStroke.Transparency = 0
-						btn.Image = "rbxassetid://10709818534"
+						btn.Image = successIconId
 
 						task.wait(0.3)
 						holdCallback()
 
 						task.wait(0.3)
 
-						btn.Image = originalIcon
+						btn.Image = defaultIcon
 						CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
 						gradient.Rotation = -90
 					end
@@ -1111,16 +1113,17 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			end
 			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
 			gradient.Rotation = -90
+			btn.Image = defaultIcon
 		end)
 
 		return btn
 	end
 
-	createActionButton("rbxassetid://10723407389", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
+	createActionButton(ICON_ASSETS.Load, UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
 
-	createActionButton("rbxassetid://10734924532", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
+	createActionButton(ICON_ASSETS.Save, UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
 
-	createActionButton("rbxassetid://10747384394", UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete")
+	createActionButton(ICON_ASSETS.Delete, UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete")
 
 	return container
 end
