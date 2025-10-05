@@ -1039,42 +1039,95 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 	actionsContainer.BackgroundTransparency = 1
 	actionsContainer.Parent = container
 	
-	local function createActionButton(icon, position, holdCallback, iconColor)
+	-- Tooltip frame
+	local tooltip = Instance.new("Frame")
+	tooltip.Size = UDim2.new(0, 100, 0, 30)
+	tooltip.BackgroundColor3 = CONFIG.BackgroundColor
+	tooltip.BorderSizePixel = 0
+	tooltip.Visible = false
+	tooltip.ZIndex = 1000
+	tooltip.Parent = container
+	
+	local tooltipCorner = Instance.new("UICorner")
+	tooltipCorner.CornerRadius = UDim.new(0, 6)
+	tooltipCorner.Parent = tooltip
+	
+	local tooltipStroke = Instance.new("UIStroke")
+	tooltipStroke.Color = CONFIG.BorderColor
+	tooltipStroke.Thickness = 1
+	tooltipStroke.Transparency = 0.5
+	tooltipStroke.Parent = tooltip
+	
+	local tooltipLabel = CreateTextLabel(tooltip, "", 12)
+	tooltipLabel.Size = UDim2.new(1, -8, 1, 0)
+	tooltipLabel.Position = UDim2.new(0, 4, 0, 0)
+	tooltipLabel.TextXAlignment = Enum.TextXAlignment.Center
+	
+	local function createActionButton(icon, position, holdCallback, tooltipText)
 		local btn = Instance.new("ImageButton")
 		btn.Size = UDim2.new(0, 24, 0, 24)
 		btn.Position = position
 		btn.BackgroundTransparency = 1
 		btn.Image = icon
-		btn.ImageColor3 = iconColor or CONFIG.TextColor
+		btn.ImageColor3 = CONFIG.TextColor
 		btn.Parent = actionsContainer
 		
-		-- Hold-to-confirm circle
-		local holdCircle = Instance.new("Frame")
-		holdCircle.Size = UDim2.new(0, 30, 0, 30)
-		holdCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
-		holdCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-		holdCircle.BackgroundTransparency = 1
-		holdCircle.Parent = btn
+		-- Circular progress indicator using UIGradient trick
+		local progressCircle = Instance.new("Frame")
+		progressCircle.Size = UDim2.new(0, 32, 0, 32)
+		progressCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+		progressCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+		progressCircle.BackgroundTransparency = 1
+		progressCircle.ZIndex = btn.ZIndex + 1
+		progressCircle.Parent = btn
 		
 		local circleStroke = Instance.new("UIStroke")
-		circleStroke.Color = iconColor or CONFIG.AccentColor
+		circleStroke.Name = "ProgressStroke"
+		circleStroke.Color = CONFIG.TextColor
 		circleStroke.Thickness = 3
 		circleStroke.Transparency = 1
-		circleStroke.Parent = holdCircle
+		circleStroke.Parent = progressCircle
 		
 		local circleCorner = Instance.new("UICorner")
 		circleCorner.CornerRadius = UDim.new(1, 0)
-		circleCorner.Parent = holdCircle
+		circleCorner.Parent = progressCircle
+		
+		-- Gradient for circular progress animation
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = 0
+		gradient.Parent = circleStroke
 		
 		local holding = false
 		local holdTime = 0
-		local holdDuration = 1 -- 1 second hold
+		local holdDuration = 1
 		local holdConnection
+		local tweenConnection
+		
+		btn.MouseEnter:Connect(function()
+			tooltip.Visible = true
+			tooltipLabel.Text = tooltipText
+			local btnAbsPos = btn.AbsolutePosition
+			local btnAbsSize = btn.AbsoluteSize
+			tooltip.Position = UDim2.new(0, btnAbsPos.X - container.AbsolutePosition.X + btnAbsSize.X / 2 - 50, 0, btnAbsPos.Y - container.AbsolutePosition.Y - 35)
+		end)
+		
+		btn.MouseLeave:Connect(function()
+			tooltip.Visible = false
+			if not holding then
+				holding = false
+				holdTime = 0
+				if holdConnection then
+					holdConnection:Disconnect()
+				end
+				CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
+				gradient.Rotation = 0
+			end
+		end)
 		
 		btn.MouseButton1Down:Connect(function()
 			holding = true
 			holdTime = 0
-			circleStroke.Transparency = 0.3
+			circleStroke.Transparency = 0.5
 			
 			if holdConnection then
 				holdConnection:Disconnect()
@@ -1085,9 +1138,9 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 					holdTime = holdTime + dt
 					local progress = math.min(holdTime / holdDuration, 1)
 					
-					-- Animate circle fill
-					local angle = progress * 360
-					circleStroke.Transparency = 0.3 - (progress * 0.3)
+					-- Animate rotation for circular progress
+					gradient.Rotation = progress * 360
+					circleStroke.Transparency = 0.5 - (progress * 0.2)
 					
 					if progress >= 1 then
 						holding = false
@@ -1097,14 +1150,15 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 						
 						-- Success animation
 						CreateTween(btn, {ImageColor3 = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
-						CreateTween(circleStroke, {Color = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
+						CreateTween(circleStroke, {Color = Color3.fromRGB(52, 199, 89), Transparency = 0.3}, 0.2):Play()
 						
 						task.wait(0.2)
 						holdCallback()
 						
 						task.wait(0.2)
-						CreateTween(btn, {ImageColor3 = iconColor or CONFIG.TextColor}, 0.3):Play()
-						CreateTween(circleStroke, {Transparency = 1}, 0.3):Play()
+						CreateTween(btn, {ImageColor3 = CONFIG.TextColor}, 0.3):Play()
+						CreateTween(circleStroke, {Color = CONFIG.TextColor, Transparency = 1}, 0.3):Play()
+						gradient.Rotation = 0
 					end
 				end
 			end)
@@ -1117,28 +1171,20 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 				holdConnection:Disconnect()
 			end
 			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
-		end)
-		
-		btn.MouseLeave:Connect(function()
-			holding = false
-			holdTime = 0
-			if holdConnection then
-				holdConnection:Disconnect()
-			end
-			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
+			gradient.Rotation = 0
 		end)
 		
 		return btn
 	end
 	
 	-- Load button
-	createActionButton("rbxassetid://10723434711", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, Color3.fromRGB(52, 199, 89))
+	createActionButton("rbxassetid://10723434711", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
 	
 	-- Save button  
-	createActionButton("rbxassetid://10747372992", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, Color3.fromRGB(0, 122, 255))
+	createActionButton("rbxassetid://10747372992", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
 	
 	-- Delete button
-	createActionButton("rbxassetid://10747384394", UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, Color3.fromRGB(255, 69, 58))
+	createActionButton("rbxassetid://10747384394", UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete")
 	
 	return container
 end
