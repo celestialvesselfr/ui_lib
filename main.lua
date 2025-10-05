@@ -2597,9 +2597,11 @@ function UILibrary:SendNotification(config)
 		
 		-- animate out
 		CreateTween(notif, {Position = UDim2.new(1, 10, 0, notif.Position.Y.Offset)}, 0.3):Play()
-		task.wait(0.3)
-		notif:Destroy()
-		repositionNotifications()
+		task.spawn(function()
+			task.wait(0.3)
+			notif:Destroy()
+			repositionNotifications()
+		end)
 	end
 	
 	-- close button click
@@ -2636,9 +2638,11 @@ function UILibrary:SendNotification(config)
 				end
 			end
 			CreateTween(oldest, {Position = UDim2.new(1, 10, 0, oldest.Position.Y.Offset)}, 0.3):Play()
-			task.wait(0.3)
-			oldest:Destroy()
-			repositionNotifications()
+			task.spawn(function()
+				task.wait(0.3)
+				oldest:Destroy()
+				repositionNotifications()
+			end)
 		end
 	end
 	
