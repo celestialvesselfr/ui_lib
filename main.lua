@@ -1,4 +1,4 @@
--- celestialvessel's random ui lib
+-- celestialvessel ui lib
 -- idk macos inspired ig
 -- has some ui elements like sliders, toggles, and such
 -- i tried animate stuff where i can
@@ -50,7 +50,7 @@ local CONFIG = {
 	GlassTransparency = 0.15,
 }
 
--- theme presets - stored at module level so they can be customized
+-- theme presets
 local THEME_PRESETS = {
 	["dark mode"] = {
 		BackgroundColor = Color3.fromRGB(30, 30, 30),
@@ -139,6 +139,22 @@ local THEME_PRESETS = {
 		TextColor = Color3.fromRGB(235, 220, 210),
 		SecondaryTextColor = Color3.fromRGB(173, 150, 144),
 		BorderColor = Color3.fromRGB(80, 62, 58)
+	},
+	["soft pastel"] = {
+		BackgroundColor = Color3.fromRGB(249, 245, 250),
+		SurfaceColor = Color3.fromRGB(255, 250, 255),
+		AccentColor = Color3.fromRGB(203, 166, 247),
+		TextColor = Color3.fromRGB(88, 76, 95),
+		SecondaryTextColor = Color3.fromRGB(158, 143, 165),
+		BorderColor = Color3.fromRGB(232, 220, 238)
+	},
+	["soft mint"] = {
+		BackgroundColor = Color3.fromRGB(244, 250, 248),
+		SurfaceColor = Color3.fromRGB(250, 255, 252),
+		AccentColor = Color3.fromRGB(134, 205, 186),
+		TextColor = Color3.fromRGB(75, 95, 88),
+		SecondaryTextColor = Color3.fromRGB(143, 165, 158),
+		BorderColor = Color3.fromRGB(220, 238, 232)
 	}
 }
 
@@ -154,7 +170,9 @@ local PROTECTED_PRESETS = {
 	["monkeytype light"] = true,
 	["monkeytype 9009"] = true,
 	["monkeytype bento"] = true,
-	["monkeytype bento dark"] = true
+	["monkeytype bento dark"] = true,
+	["soft pastel"] = true,
+	["soft mint"] = true
 }
 
 -- util functions
@@ -2458,7 +2476,9 @@ local function createNotificationContainer()
 	container.Position = UDim2.new(1, -360, 0, 10)
 	container.BackgroundTransparency = 1
 	container.ZIndex = 10000
-	container.Parent = game:GetService("CoreGui"):FindFirstChild("UILibrary") or game:GetService("CoreGui")
+	-- Parent to PlayerGui where the main UI is, not CoreGui
+	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	container.Parent = playerGui:FindFirstChild("UILibrary") or playerGui
 	
 	notificationContainer = container
 	return container
