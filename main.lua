@@ -2113,17 +2113,14 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 		end
 	end)
 
-	-- Add SetValue method for config loading
-	container.SetValue = function(value)
-		currentSelection = value
-		selectedLabel.Text = value
-	end
-
 	local dropdownObject = {
 		Container = container,
 		Options = options,
 		CurrentSelection = currentSelection,
-		SetValue = container.SetValue,
+		SetValue = function(value)
+			currentSelection = value
+			selectedLabel.Text = value
+		end,
 		Refresh = function(newOptions)
 			options = newOptions
 			local found = false
