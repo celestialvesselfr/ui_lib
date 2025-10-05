@@ -1750,16 +1750,13 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 			listContainer.ScrollBarImageColor3 = CONFIG.AccentColor
 			listContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 			listContainer.Parent = dropdownWrapper
-			
-			-- raise zindex of dropdown container and all its ancestors
 			container.ZIndex = 10000
 			for _, child in ipairs(container:GetDescendants()) do
 				if child:IsA("GuiObject") and child ~= listContainer and child ~= searchContainer then
 					child.ZIndex = 10000
 				end
 			end
-			
-			-- set zindex for all descendants of listcontainer
+
 			local function setZIndexRecursive(instance, zindex)
 				for _, child in ipairs(instance:GetDescendants()) do
 					if child:IsA("GuiObject") then
@@ -1774,22 +1771,18 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 			listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			listLayout.Parent = listContainer
 			
-			-- auto-update canvas size based on content
 			listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 				listContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
 			end)
 
 			local optionButtons = {}
 			
-			-- function to filter and display options
 			local function updateOptions(query)
-				-- clear existing options
 				for _, btn in ipairs(optionButtons) do
 					btn:Destroy()
 				end
 				optionButtons = {}
 				
-				-- filter options based on query
 				local filteredOptions = {}
 				for _, option in ipairs(options) do
 					if query == "" or string.find(string.lower(option), string.lower(query), 1, true) then
@@ -1797,7 +1790,6 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 					end
 				end
 				
-				-- create buttons for filtered options
 				local expandedHeight = math.min(#filteredOptions * 32, 200) -- cap at 200px
 				CreateTween(listContainer, {Size = UDim2.new(1, 0, 0, expandedHeight)}, 0.15):Play()
 				CreateTween(dropdownWrapper, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 32 + expandedHeight)}, 0.15):Play()
@@ -1828,13 +1820,11 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 						selectedLabel.Text = option
 						callback(option)
 						
-						-- disconnect search input listener
 						if searchConnection then
 							searchConnection:Disconnect()
 							searchConnection = nil
 						end
 						
-						-- reset container zindex
 						container.ZIndex = 1
 						for _, child in ipairs(container:GetDescendants()) do
 							if child:IsA("GuiObject") then
@@ -1842,7 +1832,6 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 							end
 						end
 						
-						-- animate dropdown closing by shrinking the wrapper
 						CreateTween(dropdownWrapper, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}, 0.15):Play()
 						task.wait(0.15)
 						dropdownWrapper:Destroy()
@@ -1864,26 +1853,20 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 				end
 			end
 			
-			-- initial display of all options
 			updateOptions("")
-			
-			-- listen for text input changes
 			searchBox:GetPropertyChangedSignal("Text"):Connect(function()
 				searchQuery = searchBox.Text
 				updateOptions(searchQuery)
 			end)
 			
-			-- listen for keyboard input when dropdown is open
 			searchConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				if dropdownOpen and input.UserInputType == Enum.UserInputType.Keyboard then
-					-- focus the search box automatically if not already focused
 					if not searchBox:IsFocused() then
 						searchBox:CaptureFocus()
 					end
 				end
 			end)
 		else
-			-- disconnect search input listener
 			if searchConnection then
 				searchConnection:Disconnect()
 				searchConnection = nil
@@ -1891,8 +1874,6 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 			
 			if container:FindFirstChild("DropdownWrapper") then
 				local dropdownWrapper = container.DropdownWrapper
-				
-				-- reset container zindex
 				container.ZIndex = 1
 				for _, child in ipairs(container:GetDescendants()) do
 					if child:IsA("GuiObject") then
@@ -1900,7 +1881,6 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 					end
 				end
 				
-				-- animate dropdown closing by shrinking the wrapper
 				CreateTween(dropdownWrapper, {Size = UDim2.new(1, -CONFIG.Padding * 2, 0, 0)}, 0.15):Play()
 				task.wait(0.15)
 				dropdownWrapper:Destroy()
@@ -1910,14 +1890,12 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 		end
 	end)
 	
-	-- return dropdown object with refresh method
 	local dropdownObject = {
 		Container = container,
 		Options = options,
 		CurrentSelection = currentSelection,
 		Refresh = function(newOptions)
 			options = newOptions
-			-- if current selection is not in new options, reset to first option
 			local found = false
 			for _, opt in ipairs(newOptions) do
 				if opt == currentSelection then
@@ -2038,8 +2016,7 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 			Size = UDim2.new(0, newWidth, 0, 28),
 			Position = UDim2.new(1, -newWidth - 8, 0.5, 0)
 		}, 0.2):Play()
-		
-		-- update label size to accommodate unbind button
+
 		if hasUnbind then
 			keybindLabel.Size = UDim2.new(1, -40, 1, 0)
 		else
@@ -2049,7 +2026,6 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 
 	-- connection for listening
 	local inputConnection
-
 	button.MouseButton1Click:Connect(function()
 		if not listening then
 			listening = true
@@ -2058,7 +2034,6 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 			updateButtonSize("listening...", false)
 			CreateTween(keybindButton, {BackgroundColor3 = CONFIG.AccentColor:Lerp(CONFIG.SurfaceColor, 0.7)}, 0.2):Play()
 
-			-- use runservice to capture input without game processing interference
 			inputConnection = UserInputService.InputBegan:Connect(function(input)
 				local keyName = getKeyName(input)
 				if keyName then
@@ -2072,7 +2047,6 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 						inputConnection:Disconnect()
 						inputConnection = nil
 					end
-					
 					callback(keyName)
 				end
 			end)
@@ -2441,28 +2415,22 @@ end
 
 
 function UILibrary:ToggleUI()
-	-- if window is minimized, restore it instead of hiding
 	if self.IsMinimized then
 		self:ToggleMinimize()
 		return
 	end
-	
-	-- toggle the visibility of the entire ui with animation
 	if self.Window then
 		local targetVisible = not self.Window.Visible
 		
 		if targetVisible then
-			-- show ui with animation
 			self.Window.Visible = true
 			self.Window.Size = UDim2.new(0, 0, 0, 0)
 			CreateTween(self.Window, {Size = CONFIG.WindowSize}, 0.4):Play()
 		else
-			-- hide ui with animation
 			local hideTween = CreateTween(self.Window, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
 			hideTween:Play()
 			task.wait(0.3)
 			self.Window.Visible = false
-			-- restore size for next open
 			self.Window.Size = CONFIG.WindowSize
 		end
 	end
@@ -2475,3 +2443,215 @@ end
 function UILibrary:SetWatermarkStyle(style)
 	print("SetWatermarkStyle:", style)
 end
+
+-- Notification System
+local notificationQueue = {}
+local activeNotifications = {}
+local maxNotifications = 5
+local notificationContainer = nil
+
+local function createNotificationContainer()
+	if notificationContainer then return notificationContainer end
+	
+	local container = Instance.new("Frame")
+	container.Name = "NotificationContainer"
+	container.Size = UDim2.new(0, 350, 1, 0)
+	container.Position = UDim2.new(1, -360, 0, 10)
+	container.BackgroundTransparency = 1
+	container.ZIndex = 10000
+	container.Parent = game:GetService("CoreGui"):FindFirstChild("UILibrary") or game:GetService("CoreGui")
+	
+	notificationContainer = container
+	return container
+end
+
+function UILibrary:SendNotification(config)
+	-- config: {Title, Description, Duration, Icon, Type}
+	local title = config.Title or "Notification"
+	local description = config.Description or ""
+	local duration = config.Duration or 3
+	local icon = config.Icon or "rbxassetid://10734923214"
+	local notifType = config.Type or "info" -- info, success, warning, error
+	
+	-- type colors
+	local typeColors = {
+		info = CONFIG.AccentColor,
+		success = Color3.fromRGB(52, 199, 89),
+		warning = Color3.fromRGB(255, 159, 10),
+		error = Color3.fromRGB(255, 69, 58)
+	}
+	local accentColor = typeColors[notifType] or CONFIG.AccentColor
+	
+	local container = createNotificationContainer()
+	
+	-- create notification frame
+	local notif = Instance.new("Frame")
+	notif.Name = "Notification"
+	notif.Size = UDim2.new(1, 0, 0, 0)
+	notif.BackgroundColor3 = CONFIG.SurfaceColor
+	notif.BorderSizePixel = 0
+	notif.ClipsDescendants = true
+	notif.Position = UDim2.new(1, 10, 0, 0)
+	notif.Parent = container
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = notif
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = CONFIG.BorderColor
+	stroke.Thickness = 1
+	stroke.Transparency = 0.5
+	stroke.Parent = notif
+	
+	-- accent bar on left
+	local accentBar = Instance.new("Frame")
+	accentBar.Name = "AccentBar"
+	accentBar.Size = UDim2.new(0, 3, 1, 0)
+	accentBar.BackgroundColor3 = accentColor
+	accentBar.BorderSizePixel = 0
+	accentBar.Parent = notif
+	
+	local accentCorner = Instance.new("UICorner")
+	accentCorner.CornerRadius = UDim.new(0, 10)
+	accentCorner.Parent = accentBar
+	
+	-- icon
+	local iconImg = Instance.new("ImageLabel")
+	iconImg.Name = "Icon"
+	iconImg.Size = UDim2.new(0, 24, 0, 24)
+	iconImg.Position = UDim2.new(0, 16, 0, 16)
+	iconImg.BackgroundTransparency = 1
+	iconImg.Image = icon
+	iconImg.ImageColor3 = accentColor
+	iconImg.Parent = notif
+	
+	-- title
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "Title"
+	titleLabel.Size = UDim2.new(1, -90, 0, 20)
+	titleLabel.Position = UDim2.new(0, 48, 0, 12)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = title
+	titleLabel.TextColor3 = CONFIG.TextColor
+	titleLabel.Font = Enum.Font.GothamSemibold
+	titleLabel.TextSize = 14
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Parent = notif
+	
+	-- description
+	local descLabel = Instance.new("TextLabel")
+	descLabel.Name = "Description"
+	descLabel.Size = UDim2.new(1, -90, 0, 16)
+	descLabel.Position = UDim2.new(0, 48, 0, 32)
+	descLabel.BackgroundTransparency = 1
+	descLabel.Text = description
+	descLabel.TextColor3 = CONFIG.SecondaryTextColor
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextSize = 12
+	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.TextWrapped = true
+	descLabel.Parent = notif
+	
+	-- close button
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = "CloseButton"
+	closeBtn.Size = UDim2.new(0, 32, 0, 32)
+	closeBtn.Position = UDim2.new(1, -40, 0, 8)
+	closeBtn.BackgroundTransparency = 1
+	closeBtn.Text = "×"
+	closeBtn.TextColor3 = CONFIG.SecondaryTextColor
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextSize = 24
+	closeBtn.Parent = notif
+	
+	-- calculate height based on description
+	local descHeight = game:GetService("TextService"):GetTextSize(description, 12, Enum.Font.Gotham, Vector2.new(260, 1000)).Y
+	local totalHeight = math.max(64, 56 + descHeight)
+	
+	-- animate in
+	notif.Size = UDim2.new(1, 0, 0, totalHeight)
+	CreateTween(notif, {Position = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
+	
+	-- track notification
+	table.insert(activeNotifications, notif)
+	
+	-- reposition all notifications
+	local function repositionNotifications()
+		local yOffset = 0
+		for i, n in ipairs(activeNotifications) do
+			CreateTween(n, {Position = UDim2.new(0, 0, 0, yOffset)}, 0.3):Play()
+			yOffset = yOffset + n.Size.Y.Offset + 10
+		end
+	end
+	
+	-- close function
+	local function closeNotification()
+		-- remove from active list
+		for i, n in ipairs(activeNotifications) do
+			if n == notif then
+				table.remove(activeNotifications, i)
+				break
+			end
+		end
+		
+		-- animate out
+		CreateTween(notif, {Position = UDim2.new(1, 10, 0, notif.Position.Y.Offset)}, 0.3):Play()
+		task.wait(0.3)
+		notif:Destroy()
+		repositionNotifications()
+	end
+	
+	-- close button click
+	closeBtn.MouseButton1Click:Connect(closeNotification)
+	
+	-- hover effects
+	closeBtn.MouseEnter:Connect(function()
+		CreateTween(closeBtn, {TextColor3 = CONFIG.TextColor}, 0.2):Play()
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		CreateTween(closeBtn, {TextColor3 = CONFIG.SecondaryTextColor}, 0.2):Play()
+	end)
+	
+	-- auto close after duration
+	if duration > 0 then
+		task.delay(duration, function()
+			if notif and notif.Parent then
+				closeNotification()
+			end
+		end)
+	end
+	
+	repositionNotifications()
+	
+	-- limit max notifications
+	if #activeNotifications > maxNotifications then
+		local oldest = activeNotifications[1]
+		if oldest then
+			-- remove oldest
+			for i, n in ipairs(activeNotifications) do
+				if n == oldest then
+					table.remove(activeNotifications, i)
+					break
+				end
+			end
+			CreateTween(oldest, {Position = UDim2.new(1, 10, 0, oldest.Position.Y.Offset)}, 0.3):Play()
+			task.wait(0.3)
+			oldest:Destroy()
+			repositionNotifications()
+		end
+	end
+	
+	return notif
+end
+
+function UILibrary:ClearNotifications()
+	for _, notif in ipairs(activeNotifications) do
+		if notif and notif.Parent then
+			notif:Destroy()
+		end
+	end
+	activeNotifications = {}
+end
+
+return UILibrary
