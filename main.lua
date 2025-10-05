@@ -550,12 +550,11 @@ function UILibrary:ToggleMaximize()
 		return
 	end
 
-	local savedSize = self:LoadWindowSize() or CONFIG.WindowSize
-	local currentSizeMatches = math.abs(self.Window.Size.X.Offset - savedSize.X.Offset) < 5 and 
-	                           math.abs(self.Window.Size.Y.Offset - savedSize.Y.Offset) < 5
+	-- Check if currently maximized (using scale-based size)
+	local isMaximized = self.Window.Size.X.Scale > 0.5
 
-	if currentSizeMatches then
-
+	if not isMaximized then
+		-- Currently normal size, maximize it
 		self.SizeBeforeMaximize = self.Window.Size
 		self:SaveWindowSize(self.Window.Size)
 
@@ -564,7 +563,8 @@ function UILibrary:ToggleMaximize()
 			Position = UDim2.new(0.5, 0, 0.5, 0)
 		}, CONFIG.AnimationSpeed):Play()
 	else
-		local targetSize = self:LoadWindowSize() or CONFIG.WindowSize
+		-- Currently maximized, restore to saved size
+		local targetSize = self.SizeBeforeMaximize or self:LoadWindowSize() or CONFIG.WindowSize
 		CreateTween(self.Window, {
 			Size = targetSize,
 			Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1079,6 +1079,7 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		local holdDuration = 0.8  -- Slightly faster for smoother feel
 		local holdConnection
 		local completeTween
+		local actionCompleted = false
 
 		btn.MouseEnter:Connect(function()
 			tooltip.Visible = true
@@ -1092,6 +1093,7 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			tooltip.Visible = false
 			holding = false
 			holdTime = 0
+			actionCompleted = false
 			if holdConnection then
 				holdConnection:Disconnect()
 			end
@@ -1112,6 +1114,7 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		btn.MouseButton1Down:Connect(function()
 			holding = true
 			holdTime = 0
+			actionCompleted = false
 			btn.Image = defaultIcon
 			progressCircle.Size = UDim2.new(0, 36, 0, 36)
 
@@ -1144,11 +1147,12 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 
 					if progress >= 1 then
 						holding = false
+						actionCompleted = true
 						if holdConnection then
 							holdConnection:Disconnect()
 						end
 
-						-- Complete animation: fade out
+						-- Complete animation: fade out circle but keep icon
 						btn.Image = successIconId
 						
 						local fadeOutTween = CreateTween(progressCircle, {
@@ -1157,12 +1161,12 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 						fadeOutTween:Play()
 						completeTween = fadeOutTween
 
-						task.wait(0.15)
-						holdCallback()
-
-						task.wait(0.25)
-
-						btn.Image = defaultIcon
+						task.spawn(function()
+							task.wait(0.15)
+							holdCallback()
+						end)
+						
+						-- Reset gradient but keep success icon visible until mouse leaves
 						gradient.Transparency = NumberSequence.new({
 							NumberSequenceKeypoint.new(0, 1),
 							NumberSequenceKeypoint.new(0, 0),
@@ -1180,18 +1184,22 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 			if holdConnection then
 				holdConnection:Disconnect()
 			end
-			if completeTween then
-				completeTween:Cancel()
+			
+			-- Only reset if action wasn't completed
+			if not actionCompleted then
+				if completeTween then
+					completeTween:Cancel()
+				end
+				-- Smooth reset animation
+				CreateTween(progressCircle, {ImageTransparency = 1}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+				gradient.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1),
+					NumberSequenceKeypoint.new(0, 0),
+					NumberSequenceKeypoint.new(0.0001, 0),
+					NumberSequenceKeypoint.new(1, 0)
+				})
+				btn.Image = defaultIcon
 			end
-			-- Smooth reset animation
-			CreateTween(progressCircle, {ImageTransparency = 1}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
-			gradient.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0, 0),
-				NumberSequenceKeypoint.new(0.0001, 0),
-				NumberSequenceKeypoint.new(1, 0)
-			})
-			btn.Image = defaultIcon
 		end)
 
 		return btn
@@ -3072,3 +3080,4 @@ function UILibrary:ApplyTheme(theme, themeName)
 end
 
 return UILibrary
+-- hi lol
