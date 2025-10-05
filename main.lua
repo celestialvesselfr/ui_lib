@@ -7,6 +7,8 @@
 -- dont skid my stuff pls
 -- credit me if u use it
 
+local UI_VERSION = "v1.5.0-notification-system"
+print("[ui library] loading version:", UI_VERSION)
 
 -- services
 local TweenService = game:GetService("TweenService")
