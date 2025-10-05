@@ -760,6 +760,12 @@ function UILibrary:CreateToggle(tab, name, default, callback)
 		callback(enabled)
 	end)
 
+	-- Add SetValue method for config loading
+	container.SetValue = function(value)
+		enabled = value
+		updateToggle(false)
+	end
+
 	return container
 end
 
@@ -1168,6 +1174,11 @@ function UILibrary:CreateInput(tab, name, placeholder, callback)
 	input.Focused:Connect(function()
 		CreateTween(inputBox, {BackgroundColor3 = CONFIG.SurfaceColor:Lerp(CONFIG.AccentColor, 0.1)}, 0.2):Play()
 	end)
+
+	-- Add SetValue method for config loading
+	container.SetValue = function(value)
+		input.Text = value
+	end
 
 	return container
 end
@@ -2077,10 +2088,17 @@ function UILibrary:CreateDropdown(tab, name, options, default, callback)
 		end
 	end)
 
+	-- Add SetValue method for config loading
+	container.SetValue = function(value)
+		currentSelection = value
+		selectedLabel.Text = value
+	end
+
 	local dropdownObject = {
 		Container = container,
 		Options = options,
 		CurrentSelection = currentSelection,
+		SetValue = container.SetValue,
 		Refresh = function(newOptions)
 			options = newOptions
 			local found = false
@@ -2298,6 +2316,20 @@ function UILibrary:CreateKeybind(tab, name, default, callback)
 	unbindButton.MouseEnter:Connect(function()
 		unbindButton.Visible = true
 	end)
+
+	-- Add SetValue method for config loading
+	container.SetValue = function(value)
+		currentKey = value
+		if value and value ~= "" then
+			keybindLabel.Text = value
+			originalText = value
+			updateButtonSize(value, false)
+		else
+			keybindLabel.Text = "not bound"
+			originalText = "not bound"
+			updateButtonSize("not bound", false)
+		end
+	end
 
 	return container
 end
