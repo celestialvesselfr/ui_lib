@@ -699,6 +699,10 @@ function UILibrary:AddTab(name, icon)
 	tab.AddButton = function(_, name, callback)
 		return self:CreateButton(tab, name, callback)
 	end
+	
+	tab.AddConfigCard = function(_, configName, lastUsed, callbacks)
+		return self:CreateConfigCard(tab, configName, lastUsed, callbacks)
+	end
 
 	tab.AddInput = function(_, name, placeholder, callback)
 		return self:CreateInput(tab, name, placeholder, callback)
@@ -876,12 +880,15 @@ function UILibrary:CreateSlider(tab, name, min, max, default, callback, allowDec
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = thumb
 
-	-- add shadow to thumb
+	-- add shadow to thumb (stored for theme updates)
 	local thumbShadow = Instance.new("UIStroke")
 	thumbShadow.Color = CONFIG.AccentColor
 	thumbShadow.Thickness = 2
 	thumbShadow.Transparency = 0.5
 	thumbShadow.Parent = thumb
+	
+	-- Store reference for theme updates
+	thumb.thumbShadow = thumbShadow
 
 	local dragging = false
 	local currentValue = default
@@ -994,15 +1001,148 @@ function UILibrary:CreateButton(tab, name, callback)
 		callback()
 	end)
 
+	local originalColor = CONFIG.AccentColor
 	clickButton.MouseEnter:Connect(function()
-		CreateTween(button, {BackgroundColor3 = CONFIG.AccentColor:Lerp(Color3.new(1, 1, 1), 0.1)}, 0.25):Play()
+		CreateTween(button, {BackgroundColor3 = button.BackgroundColor3:Lerp(Color3.new(1, 1, 1), 0.1)}, 0.25):Play()
 	end)
 
 	clickButton.MouseLeave:Connect(function()
-		CreateTween(button, {BackgroundColor3 = CONFIG.AccentColor}, 0.25):Play()
+		CreateTween(button, {BackgroundColor3 = originalColor}, 0.25):Play()
 	end)
 
 	return button
+end
+
+-- Create config card with hold-to-confirm functionality
+function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
+	local container = CreateRoundedFrame(tab.Content, "ConfigCard_" .. configName)
+	container.Size = UDim2.new(1, 0, 0, 70)
+	container.BackgroundColor3 = CONFIG.SurfaceColor
+	container.BackgroundTransparency = 0
+	
+	-- Config name label
+	local nameLabel = CreateTextLabel(container, configName, 16)
+	nameLabel.Size = UDim2.new(1, -100, 0, 25)
+	nameLabel.Position = UDim2.new(0, CONFIG.Padding, 0, 8)
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	
+	-- Last used label
+	local dateLabel = CreateTextLabel(container, lastUsed or "Never used", 12)
+	dateLabel.Size = UDim2.new(1, -100, 0, 20)
+	dateLabel.Position = UDim2.new(0, CONFIG.Padding, 0, 33)
+	dateLabel.TextXAlignment = Enum.TextXAlignment.Left
+	dateLabel.TextColor3 = CONFIG.TextColor:Lerp(CONFIG.BackgroundColor, 0.3)
+	
+	-- Action buttons container
+	local actionsContainer = Instance.new("Frame")
+	actionsContainer.Size = UDim2.new(0, 80, 1, -16)
+	actionsContainer.Position = UDim2.new(1, -88, 0, 8)
+	actionsContainer.BackgroundTransparency = 1
+	actionsContainer.Parent = container
+	
+	local function createActionButton(icon, position, holdCallback, iconColor)
+		local btn = Instance.new("ImageButton")
+		btn.Size = UDim2.new(0, 24, 0, 24)
+		btn.Position = position
+		btn.BackgroundTransparency = 1
+		btn.Image = icon
+		btn.ImageColor3 = iconColor or CONFIG.TextColor
+		btn.Parent = actionsContainer
+		
+		-- Hold-to-confirm circle
+		local holdCircle = Instance.new("Frame")
+		holdCircle.Size = UDim2.new(0, 30, 0, 30)
+		holdCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+		holdCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+		holdCircle.BackgroundTransparency = 1
+		holdCircle.Parent = btn
+		
+		local circleStroke = Instance.new("UIStroke")
+		circleStroke.Color = iconColor or CONFIG.AccentColor
+		circleStroke.Thickness = 3
+		circleStroke.Transparency = 1
+		circleStroke.Parent = holdCircle
+		
+		local circleCorner = Instance.new("UICorner")
+		circleCorner.CornerRadius = UDim.new(1, 0)
+		circleCorner.Parent = holdCircle
+		
+		local holding = false
+		local holdTime = 0
+		local holdDuration = 1 -- 1 second hold
+		local holdConnection
+		
+		btn.MouseButton1Down:Connect(function()
+			holding = true
+			holdTime = 0
+			circleStroke.Transparency = 0.3
+			
+			if holdConnection then
+				holdConnection:Disconnect()
+			end
+			
+			holdConnection = game:GetService("RunService").Heartbeat:Connect(function(dt)
+				if holding then
+					holdTime = holdTime + dt
+					local progress = math.min(holdTime / holdDuration, 1)
+					
+					-- Animate circle fill
+					local angle = progress * 360
+					circleStroke.Transparency = 0.3 - (progress * 0.3)
+					
+					if progress >= 1 then
+						holding = false
+						if holdConnection then
+							holdConnection:Disconnect()
+						end
+						
+						-- Success animation
+						CreateTween(btn, {ImageColor3 = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
+						CreateTween(circleStroke, {Color = Color3.fromRGB(52, 199, 89)}, 0.2):Play()
+						
+						task.wait(0.2)
+						holdCallback()
+						
+						task.wait(0.2)
+						CreateTween(btn, {ImageColor3 = iconColor or CONFIG.TextColor}, 0.3):Play()
+						CreateTween(circleStroke, {Transparency = 1}, 0.3):Play()
+					end
+				end
+			end)
+		end)
+		
+		btn.MouseButton1Up:Connect(function()
+			holding = false
+			holdTime = 0
+			if holdConnection then
+				holdConnection:Disconnect()
+			end
+			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
+		end)
+		
+		btn.MouseLeave:Connect(function()
+			holding = false
+			holdTime = 0
+			if holdConnection then
+				holdConnection:Disconnect()
+			end
+			CreateTween(circleStroke, {Transparency = 1}, 0.2):Play()
+		end)
+		
+		return btn
+	end
+	
+	-- Load button
+	createActionButton("rbxassetid://10723434711", UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, Color3.fromRGB(52, 199, 89))
+	
+	-- Save button  
+	createActionButton("rbxassetid://10747372992", UDim2.new(0, 28, 0.5, -12), callbacks.onSave, Color3.fromRGB(0, 122, 255))
+	
+	-- Delete button
+	createActionButton("rbxassetid://10747384394", UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, Color3.fromRGB(255, 69, 58))
+	
+	return container
 end
 
 function UILibrary:CreateInput(tab, name, placeholder, callback)
@@ -2702,9 +2842,7 @@ function UILibrary:SendNotification(config)
 		end
 	end
 	
-	-- close function
 	local function closeNotification()
-		-- remove from active list
 		for i, n in ipairs(activeNotifications) do
 			if n == notif then
 				table.remove(activeNotifications, i)
@@ -2712,7 +2850,6 @@ function UILibrary:SendNotification(config)
 			end
 		end
 		
-		-- animate out
 		CreateTween(notif, {Position = UDim2.new(1, 10, 0, notif.Position.Y.Offset)}, 0.3):Play()
 		task.spawn(function()
 			task.wait(0.3)
@@ -2721,10 +2858,8 @@ function UILibrary:SendNotification(config)
 		end)
 	end
 	
-	-- close button click
 	closeBtn.MouseButton1Click:Connect(closeNotification)
 	
-	-- hover effects
 	closeBtn.MouseEnter:Connect(function()
 		CreateTween(closeBtn, {TextColor3 = CONFIG.TextColor}, 0.2):Play()
 	end)
@@ -2732,35 +2867,29 @@ function UILibrary:SendNotification(config)
 		CreateTween(closeBtn, {TextColor3 = CONFIG.SecondaryTextColor}, 0.2):Play()
 	end)
 	
-	-- countdown animation for accent bar
 	if duration > 0 then
 		local direction = CONFIG.NotificationCountdownDirection
 		local targetSize, targetPosition
 		
 		if direction == "downwards" then
-			-- Shrink from top to bottom
 			accentBar.AnchorPoint = Vector2.new(0, 0)
 			accentBar.Position = UDim2.new(0, 4, 0, 4)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 1, -4)
 		elseif direction == "upwards" then
-			-- Shrink from bottom to top
 			accentBar.AnchorPoint = Vector2.new(0, 1)
 			accentBar.Position = UDim2.new(0, 4, 1, -4)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 0, 4)
 		elseif direction == "center" then
-			-- Shrink from both ends to center
 			accentBar.AnchorPoint = Vector2.new(0, 0.5)
 			accentBar.Position = UDim2.new(0, 4, 0.5, 0)
 			targetSize = UDim2.new(0, 4, 0, 0)
 			targetPosition = UDim2.new(0, 4, 0.5, 0)
 		end
 		
-		-- Animate the countdown
 		CreateTween(accentBar, {Size = targetSize, Position = targetPosition}, duration, Enum.EasingStyle.Linear):Play()
 		
-		-- Auto close after duration
 		task.delay(duration, function()
 			if notif and notif.Parent then
 				closeNotification()
@@ -2800,6 +2929,83 @@ function UILibrary:ClearNotifications()
 		end
 	end
 	activeNotifications = {}
+end
+
+function UILibrary:GetCurrentTheme()
+	return {
+		BackgroundColor = CONFIG.BackgroundColor,
+		SecondaryColor = CONFIG.SecondaryColor,
+		AccentColor = CONFIG.AccentColor,
+		TextColor = CONFIG.TextColor,
+		BorderColor = CONFIG.BorderColor
+	}
+end
+
+function UILibrary:ApplyTheme(theme)
+	if theme.BackgroundColor then
+		CONFIG.BackgroundColor = theme.BackgroundColor
+	end
+	if theme.SecondaryColor then
+		CONFIG.SecondaryColor = theme.SecondaryColor
+	end
+	if theme.AccentColor then
+		CONFIG.AccentColor = theme.AccentColor
+	end
+	if theme.TextColor then
+		CONFIG.TextColor = theme.TextColor
+	end
+	if theme.BorderColor then
+		CONFIG.BorderColor = theme.BorderColor
+	end
+
+	if self.Window then
+		self.Window.BackgroundColor3 = CONFIG.BackgroundColor
+	end
+	
+	if self.TopBar then
+		self.TopBar.BackgroundColor3 = CONFIG.SecondaryColor
+	end
+	
+	if self.TitleLabel then
+		self.TitleLabel.TextColor3 = CONFIG.TextColor
+	end
+	
+	if self.Tabs then
+		for _, tabData in pairs(self.Tabs) do
+			if tabData.Button then
+				tabData.Button.BackgroundColor3 = CONFIG.SecondaryColor
+				if tabData.Button:FindFirstChild("TabLabel") then
+					tabData.Button.TabLabel.TextColor3 = CONFIG.TextColor
+				end
+			end
+			
+			if tabData.Content then
+				for _, element in ipairs(tabData.Content:GetChildren()) do
+					if element:IsA("GuiObject") then
+						local fill = element:FindFirstChild("Fill", true)
+						if fill then
+							fill.BackgroundColor3 = CONFIG.AccentColor
+						end
+						
+						local thumb = element:FindFirstChild("Thumb", true)
+						if thumb and thumb.thumbShadow then
+							thumb.thumbShadow.Color = CONFIG.AccentColor
+						end
+						
+						if element.Name:match("^Button_") then
+							element.BackgroundColor3 = CONFIG.AccentColor
+						end
+					end
+				end
+			end
+		end
+	end
+	if self.SelectedTab and self.Tabs[self.SelectedTab] then
+		local selectedButton = self.Tabs[self.SelectedTab].Button
+		if selectedButton then
+			selectedButton.BackgroundColor3 = CONFIG.AccentColor
+		end
+	end
 end
 
 return UILibrary
