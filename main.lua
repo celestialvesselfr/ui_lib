@@ -43,6 +43,14 @@ local ICON_ASSETS = {
 	Success = "rbxassetid://6031068426"
 }
 
+-- Allow overriding default icons
+function SetIconAssets(icons)
+	if icons.Load then ICON_ASSETS.Load = icons.Load end
+	if icons.Save then ICON_ASSETS.Save = icons.Save end
+	if icons.Delete then ICON_ASSETS.Delete = icons.Delete end
+	if icons.Success then ICON_ASSETS.Success = icons.Success end
+end
+
 local THEME_PRESETS = {
 	["dark mode"] = {
 		BackgroundColor = Color3.fromRGB(30, 30, 30),
@@ -1134,11 +1142,16 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		return btn
 	end
 
-	createActionButton(ICON_ASSETS.Load, UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load")
+	local loadIcon = callbacks.loadIcon or ICON_ASSETS.Load
+	local saveIcon = callbacks.saveIcon or ICON_ASSETS.Save
+	local deleteIcon = callbacks.deleteIcon or ICON_ASSETS.Delete
+	local successIcon = callbacks.successIcon or ICON_ASSETS.Success
 
-	createActionButton(ICON_ASSETS.Save, UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save")
+	createActionButton(loadIcon, UDim2.new(0, 0, 0.5, -12), callbacks.onLoad, "Hold to load", successIcon)
 
-	createActionButton(ICON_ASSETS.Delete, UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete")
+	createActionButton(saveIcon, UDim2.new(0, 28, 0.5, -12), callbacks.onSave, "Hold to save", successIcon)
+
+	createActionButton(deleteIcon, UDim2.new(0, 56, 0.5, -12), callbacks.onDelete, "Hold to delete", successIcon)
 
 	return container
 end
@@ -2762,6 +2775,9 @@ function UILibrary:SendNotification(config)
 
 	local descHeight = game:GetService("TextService"):GetTextSize(description, 12, Enum.Font.Gotham, Vector2.new(260, 1000)).Y
 	local totalHeight = math.max(64, 56 + descHeight)
+	
+	-- Update description label height to fit text
+	descLabel.Size = UDim2.new(1, -90, 0, descHeight)
 
 	notif.Size = UDim2.new(1, 0, 0, totalHeight)
 	CreateTween(notif, {Position = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out):Play()
