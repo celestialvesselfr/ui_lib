@@ -3,6 +3,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local openColorPickerPopup = nil
 local currentTheme = nil
+
 local CONFIG = {
 
 	WindowSize = UDim2.new(0, 650, 0, 500),
@@ -123,7 +124,7 @@ local THEME_PRESETS = {
 		SecondaryTextColor = Color3.fromRGB(127, 125, 122),
 		BorderColor = Color3.fromRGB(200, 193, 186)
 	},
-	["monkeytype bento"] = {
+	["sakura light"] = {
 		BackgroundColor = Color3.fromRGB(245, 240, 230),
 		SurfaceColor = Color3.fromRGB(255, 239, 210),
 		AccentColor = Color3.fromRGB(255, 122, 144),
@@ -131,7 +132,7 @@ local THEME_PRESETS = {
 		SecondaryTextColor = Color3.fromRGB(138, 111, 104),
 		BorderColor = Color3.fromRGB(231, 213, 189)
 	},
-	["monkeytype bento dark"] = {
+	["sakura dark"] = {
 		BackgroundColor = Color3.fromRGB(38, 34, 32),
 		SurfaceColor = Color3.fromRGB(58, 46, 44),
 		AccentColor = Color3.fromRGB(255, 122, 144),
@@ -215,8 +216,8 @@ local PROTECTED_PRESETS = {
 	["monkeytype dark"] = true,
 	["monkeytype light"] = true,
 	["monkeytype 9009"] = true,
-	["monkeytype bento"] = true,
-	["monkeytype bento dark"] = true,
+	["sakura light"] = true,
+	["sakura dark"] = true,
 	["soft pastel"] = true,
 	["soft pastel dark"] = true,
 	["soft mint"] = true,
@@ -2612,6 +2613,7 @@ function UILibrary:ApplyPreset(presetName)
 	if THEME_PRESETS[presetName] then
 		local preset = THEME_PRESETS[presetName]
 		self:UpdateTheme(preset)
+		self:SaveLastTheme(presetName)
 
 		for _, tab in ipairs(self.Tabs) do
 			if tab.Content then
@@ -2929,7 +2931,28 @@ function UILibrary:GetCurrentTheme()
 	}
 end
 
-function UILibrary:ApplyTheme(theme)
+-- Save last used theme name
+function UILibrary:SaveLastTheme(themeName)
+	if not isfolder("nozomi_themes") then
+		makefolder("nozomi_themes")
+	end
+	writefile("nozomi_themes/last_theme.txt", themeName)
+end
+
+-- Load last used theme name
+function UILibrary:LoadLastTheme()
+	if isfile("nozomi_themes/last_theme.txt") then
+		return readfile("nozomi_themes/last_theme.txt")
+	end
+	return nil
+end
+
+function UILibrary:ApplyTheme(theme, themeName)
+	-- Save theme name if provided
+	if themeName then
+		self:SaveLastTheme(themeName)
+	end
+	
 	if theme.BackgroundColor then
 		CONFIG.BackgroundColor = theme.BackgroundColor
 	end
