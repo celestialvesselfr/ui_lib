@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 local openColorPickerPopup = nil
 local currentTheme = nil
 
-print("test")
+print("test 2)
 
 local CONFIG = {
 
@@ -1044,17 +1044,16 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 		progressCircle.Image = "rbxasset://textures/ui/Controls/RadialFill.png"
 		progressCircle.ImageColor3 = CONFIG.AccentColor
 		progressCircle.ImageTransparency = 1
-		progressCircle.Rotation = -90  -- Rotate image to start at 12 o'clock
 		progressCircle.ZIndex = btn.ZIndex + 1
 		progressCircle.Parent = btn
 		
 		local gradient = Instance.new("UIGradient")
-		gradient.Rotation = 0
+		gradient.Rotation = 90  -- Start gradient at 12 o'clock
 		gradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
 			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.5, 0),
-			NumberSequenceKeypoint.new(0.5001, 1),
-			NumberSequenceKeypoint.new(1, 1)
+			NumberSequenceKeypoint.new(0.0001, 0),
+			NumberSequenceKeypoint.new(1, 0)
 		})
 		gradient.Parent = progressCircle
 
@@ -1083,8 +1082,13 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 				completeTween:Cancel()
 			end
 			-- Smooth fade out and reset
-			CreateTween(progressCircle, {ImageTransparency = 1, Size = UDim2.new(0, 32, 0, 32)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
-			gradient.Rotation = 0
+			CreateTween(progressCircle, {ImageTransparency = 1}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+			gradient.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.0001, 0),
+				NumberSequenceKeypoint.new(1, 0)
+			})
 			btn.Image = defaultIcon
 		end)
 
@@ -1106,8 +1110,16 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 					holdTime = holdTime + dt
 					local progress = math.min(holdTime / holdDuration, 1)
 
-					-- Rotate gradient from 0 to 360 (12 o'clock full circle)
-					gradient.Rotation = progress * 360
+					-- Create expanding circle effect from 12 o'clock
+					-- Update gradient transparency to reveal more of the circle
+					local cutoff = progress  -- 0 to 1
+					gradient.Transparency = NumberSequence.new({
+						NumberSequenceKeypoint.new(0, 1),
+						NumberSequenceKeypoint.new(0, 0),
+						NumberSequenceKeypoint.new(math.max(0.0001, cutoff), 0),
+						NumberSequenceKeypoint.new(math.min(1, cutoff + 0.0001), 1),
+						NumberSequenceKeypoint.new(1, 1)
+					})
 
 					-- Smooth fade in with easing
 					local fadeProgress = progress ^ 0.5  -- Square root for smooth ease in
@@ -1119,24 +1131,27 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 							holdConnection:Disconnect()
 						end
 
-						-- Complete animation: shrink and fade out
+						-- Complete animation: fade out
 						btn.Image = successIconId
 						
-						local shrinkTween = CreateTween(progressCircle, {
-							Size = UDim2.new(0, 28, 0, 28),
+						local fadeOutTween = CreateTween(progressCircle, {
 							ImageTransparency = 1
-						}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-						shrinkTween:Play()
-						completeTween = shrinkTween
+						}, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+						fadeOutTween:Play()
+						completeTween = fadeOutTween
 
 						task.wait(0.15)
 						holdCallback()
 
-						task.wait(0.35)
+						task.wait(0.25)
 
 						btn.Image = defaultIcon
-						gradient.Rotation = 0
-						progressCircle.Size = UDim2.new(0, 36, 0, 36)
+						gradient.Transparency = NumberSequence.new({
+							NumberSequenceKeypoint.new(0, 1),
+							NumberSequenceKeypoint.new(0, 0),
+							NumberSequenceKeypoint.new(0.0001, 0),
+							NumberSequenceKeypoint.new(1, 0)
+						})
 					end
 				end
 			end)
@@ -1152,8 +1167,13 @@ function UILibrary:CreateConfigCard(tab, configName, lastUsed, callbacks)
 				completeTween:Cancel()
 			end
 			-- Smooth reset animation
-			CreateTween(progressCircle, {ImageTransparency = 1, Size = UDim2.new(0, 32, 0, 32)}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
-			gradient.Rotation = 0
+			CreateTween(progressCircle, {ImageTransparency = 1}, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+			gradient.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.0001, 0),
+				NumberSequenceKeypoint.new(1, 0)
+			})
 			btn.Image = defaultIcon
 		end)
 
